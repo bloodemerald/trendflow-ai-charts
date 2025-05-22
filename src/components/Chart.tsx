@@ -27,12 +27,12 @@ const CustomCandlestick = (props: any) => {
   
   return (
     <g>
-      {/* Wick line */}
+      {/* Wick line from high to low */}
       <line 
         x1={x + width / 2} 
-        y1={y + high} 
+        y1={y + low} 
         x2={x + width / 2} 
-        y2={y + low} 
+        y2={y + high} 
         stroke={color} 
         strokeWidth={1}
       />
@@ -99,13 +99,37 @@ const Chart = () => {
       const formattedSymbol = symbol.replace('/', '');
       
       // Map timeframe to API format
-      const apiTimeframe = timeFrame === '1d' ? 'day' : 
-                          timeFrame === '1h' ? 'hour' : 
-                          timeFrame === '1w' ? 'week' : 'hour';
+      let apiTimeframe;
+      switch (timeFrame) {
+        case '1m': apiTimeframe = 'minute'; break;
+        case '5m': apiTimeframe = 'minute'; break;
+        case '15m': apiTimeframe = 'minute'; break;
+        case '30m': apiTimeframe = 'minute'; break;
+        case '1h': apiTimeframe = 'hour'; break;
+        case '4h': apiTimeframe = 'hour'; break;
+        case '1d': apiTimeframe = 'day'; break;
+        case '1w': apiTimeframe = 'week'; break;
+        default: apiTimeframe = 'hour';
+      }
+      
+      // For minute-level data, we need to specify how many minutes
+      let limit = 50;
+      let aggregation = 1;
+      
+      if (apiTimeframe === 'minute') {
+        switch (timeFrame) {
+          case '5m': aggregation = 5; break;
+          case '15m': aggregation = 15; break;
+          case '30m': aggregation = 30; break;
+          default: aggregation = 1;
+        }
+      } else if (apiTimeframe === 'hour' && timeFrame === '4h') {
+        aggregation = 4;
+      }
       
       // Use CryptoCompare API for cryptocurrency data
       const response = await fetch(
-        `https://min-api.cryptocompare.com/data/v2/histo${apiTimeframe}?fsym=${formattedSymbol.split('USD')[0]}&tsym=USD&limit=50`
+        `https://min-api.cryptocompare.com/data/v2/histo${apiTimeframe}?fsym=${formattedSymbol.split('USD')[0]}&tsym=USD&limit=${limit}&aggregate=${aggregation}`
       );
       
       if (!response.ok) {
@@ -141,10 +165,10 @@ const Chart = () => {
   // Fetch data on initial load and when symbol or timeframe changes
   useEffect(() => {
     fetchMarketData();
-    // Set up polling to refresh data
+    // Set up polling to refresh data based on timeframe
     const interval = setInterval(() => {
       fetchMarketData();
-    }, 60000); // Refresh every minute
+    }, timeFrame === '1m' ? 30000 : 60000); // Refresh more frequently for 1m charts
     
     return () => clearInterval(interval);
   }, [symbol, timeFrame]);
@@ -206,6 +230,20 @@ const Chart = () => {
               tick={{ fill: '#999' }}
               stroke="#555" 
               orientation="right"
+            />
+            
+            <Tooltip
+              contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
+              labelStyle={{ color: '#E0E0E0' }}
+              itemStyle={{ color: '#E0E0E0' }}
+              formatter={(value: any, name: string) => {
+                if (name === 'sma') return [value.toFixed(2), 'SMA (14)'];
+                return [value, name];
+              }}
+              labelFormatter={(label) => {
+                const date = new Date(label);
+                return date.toLocaleString();
+              }}
             />
             
             {/* Candlesticks */}

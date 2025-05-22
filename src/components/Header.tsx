@@ -16,7 +16,10 @@ const Header = () => {
   const [searchValue, setSearchValue] = useState('');
   const [invalidSymbol, setInvalidSymbol] = useState(false);
 
-  const timeFrames = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w', '1M'];
+  // Timeframes with scalping options highlighted
+  const scalpingTimeFrames = ['1m', '5m', '15m', '30m'];
+  const intraTimeFrames = ['1h', '4h'];
+  const longTimeFrames = ['1d', '1w', '1M'];
   
   // Popular cryptocurrency pairs
   const popularPairs = [
@@ -91,18 +94,55 @@ const Header = () => {
       </form>
 
       <div className="flex items-center">
-        <div className="flex space-x-1 mr-4">
-          {timeFrames.map((tf) => (
-            <button
-              key={tf}
-              className={`timeframe-button ${timeFrame === tf ? 'active' : ''}`}
-              onClick={() => setTimeFrame(tf as any)}
-            >
-              {tf}
-            </button>
-          ))}
+        <div className="flex space-x-1 timeframes-container">
+          <div className="flex space-x-1">
+            {scalpingTimeFrames.map((tf) => (
+              <Button
+                key={tf}
+                size="sm"
+                variant={timeFrame === tf ? "default" : "outline"}
+                className={`py-0.5 px-2 h-auto text-xs ${timeFrame === tf ? 'bg-primary' : 'border-border'} ${tf === '1m' || tf === '15m' ? 'ring-2 ring-primary/20' : ''}`}
+                onClick={() => setTimeFrame(tf as any)}
+              >
+                {tf}
+              </Button>
+            ))}
+          </div>
+          
+          <div className="w-px h-6 bg-border mx-1" />
+          
+          <div className="flex space-x-1">
+            {intraTimeFrames.map((tf) => (
+              <Button
+                key={tf}
+                size="sm"
+                variant={timeFrame === tf ? "default" : "outline"}
+                className={`py-0.5 px-2 h-auto text-xs ${timeFrame === tf ? 'bg-primary' : 'border-border'} ${tf === '1h' ? 'ring-2 ring-primary/20' : ''}`}
+                onClick={() => setTimeFrame(tf as any)}
+              >
+                {tf}
+              </Button>
+            ))}
+          </div>
+          
+          <div className="w-px h-6 bg-border mx-1" />
+          
+          <div className="flex space-x-1">
+            {longTimeFrames.map((tf) => (
+              <Button
+                key={tf}
+                size="sm"
+                variant={timeFrame === tf ? "default" : "outline"}
+                className={`py-0.5 px-2 h-auto text-xs ${timeFrame === tf ? 'bg-primary' : 'border-border'}`}
+                onClick={() => setTimeFrame(tf as any)}
+              >
+                {tf}
+              </Button>
+            ))}
+          </div>
         </div>
-        <Button size="sm" variant="outline" className="ml-2">
+        
+        <Button size="sm" variant="outline" className="ml-4">
           Indicators
         </Button>
         <Button size="sm" className="ml-2">
