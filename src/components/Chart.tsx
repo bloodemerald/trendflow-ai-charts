@@ -82,6 +82,15 @@ const CandlestickChart = () => {
             stroke="#555" 
             orientation="right"
           />
+          {/* Add a second YAxis specifically for volume with yAxisId */}
+          <YAxis 
+            yAxisId="volume"
+            domain={['auto', 'auto']} 
+            tick={{ fill: '#999' }}
+            stroke="#555"
+            orientation="left"
+            hide
+          />
           <Tooltip
             contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
             labelStyle={{ color: '#E0E0E0' }}
@@ -100,11 +109,11 @@ const CandlestickChart = () => {
             />
           ))}
           
-          {/* Volume bars */}
+          {/* Volume bars - Fixed by adding yAxisId that matches the second YAxis */}
           <Bar 
             dataKey="volume" 
             fill="rgba(33, 150, 243, 0.3)" 
-            yAxisId={1} 
+            yAxisId="volume" 
             barSize={3} 
           />
           
