@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 type ChartData = {
@@ -39,6 +40,16 @@ interface ChartState {
   setIsAIAnalyzing: (isAnalyzing: boolean) => void;
   showDrawingSettings: boolean;
   setShowDrawingSettings: (show: boolean) => void;
+  marketSummary: {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    change: number;
+    changePercent: number;
+    volume: number;
+  };
+  updateMarketSummary: () => void;
 }
 
 // Generate some mock data for initial rendering
@@ -82,13 +93,17 @@ const initialMessages: ChatMessage[] = [
   }
 ];
 
-export const useChartStore = create<ChartState>((set) => ({
+export const useChartStore = create<ChartState>((set, get) => ({
   symbol: 'BTC/USD',
   setSymbol: (symbol) => set({ symbol }),
   timeFrame: '1d',
   setTimeFrame: (timeFrame) => set({ timeFrame }),
   chartData: generateMockChartData(),
-  setChartData: (data) => set({ chartData: data }),
+  setChartData: (data) => {
+    set({ chartData: data });
+    // After updating chart data, also update market summary
+    get().updateMarketSummary();
+  },
   activeTool: 'cursor',
   setActiveTool: (tool) => set({ activeTool: tool }),
   indicators: ['sma'],
@@ -126,5 +141,50 @@ export const useChartStore = create<ChartState>((set) => ({
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
   showDrawingSettings: false,
-  setShowDrawingSettings: (show) => set({ showDrawingSettings: show })
+  setShowDrawingSettings: (show) => set({ showDrawingSettings: show }),
+  marketSummary: {
+    open: 0,
+    high: 0,
+    low: 0,
+    close: 0,
+    change: 0,
+    changePercent: 0,
+    volume: 0
+  },
+  updateMarketSummary: () => {
+    const { chartData } = get();
+    
+    if (chartData.length === 0) return;
+    
+    // Get first and last data points for the period
+    const firstPoint = chartData[0];
+    const lastPoint = chartData[chartData.length - 1];
+    
+    // Find highest high and lowest low
+    let highestHigh = chartData[0].high;
+    let lowestLow = chartData[0].low;
+    let totalVolume = 0;
+    
+    chartData.forEach(point => {
+      highestHigh = Math.max(highestHigh, point.high);
+      lowestLow = Math.min(lowestLow, point.low);
+      totalVolume += point.volume;
+    });
+    
+    // Calculate change and change percentage
+    const change = lastPoint.close - firstPoint.open;
+    const changePercent = (change / firstPoint.open) * 100;
+    
+    set({
+      marketSummary: {
+        open: firstPoint.open,
+        high: highestHigh,
+        low: lowestLow,
+        close: lastPoint.close,
+        change,
+        changePercent,
+        volume: totalVolume
+      }
+    });
+  }
 }));
