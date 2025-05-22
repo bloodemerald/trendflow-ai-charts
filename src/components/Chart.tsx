@@ -188,12 +188,11 @@ const Chart = () => {
       </div>
       
       <div className="chart-container">
-        <ChartContainer config={{}} className="h-[500px]">
-          {/* Main price chart */}
+        {/* Price chart container */}
+        <ChartContainer config={{}} className="h-[350px]">
           <ComposedChart
             data={processedData}
             margin={{ top: 20, right: 50, left: 20, bottom: 5 }}
-            className="w-full h-[350px]"
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
             <XAxis 
@@ -243,12 +242,13 @@ const Chart = () => {
               />
             )}
           </ComposedChart>
+        </ChartContainer>
 
-          {/* Volume chart */}
+        {/* Volume chart container - Now in a separate ChartContainer */}
+        <ChartContainer config={{}} className="h-[150px] mt-4">
           <BarChart
             data={processedData}
             margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
-            className="w-full h-[150px]"
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
             <XAxis 
