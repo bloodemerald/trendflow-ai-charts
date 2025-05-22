@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 type ChartData = {
@@ -125,7 +124,7 @@ export const useChartStore = create<ChartState>((set) => ({
     };
   }),
   isAIAnalyzing: false,
-  setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing }),
+  setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
   showDrawingSettings: false,
   setShowDrawingSettings: (show) => set({ showDrawingSettings: show })
 }));
