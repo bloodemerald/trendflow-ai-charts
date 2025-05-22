@@ -7,7 +7,7 @@ import {
   Crosshair,
   TrendingUp,
   BarChart,
-  Rectangle,
+  RectangleHorizontal,
   Type,
   Settings
 } from 'lucide-react';
@@ -17,7 +17,7 @@ const tools = [
   { id: 'crosshair', icon: Crosshair, tooltip: 'Crosshair' },
   { id: 'trendline', icon: TrendingUp, tooltip: 'Trend Line' },
   { id: 'fibonacci', icon: BarChart, tooltip: 'Fibonacci' },
-  { id: 'rectangle', icon: Rectangle, tooltip: 'Rectangle' },
+  { id: 'rectangle', icon: RectangleHorizontal, tooltip: 'Rectangle' },
   { id: 'text', icon: Type, tooltip: 'Text' }
 ];
 

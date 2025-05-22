@@ -101,7 +101,7 @@ export const useChartStore = create<ChartState>((set) => ({
   })),
   chatMessages: initialMessages,
   addUserMessage: (text) => set((state) => {
-    const newMessage = {
+    const newMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: 'user',
       text,
@@ -113,7 +113,7 @@ export const useChartStore = create<ChartState>((set) => ({
     };
   }),
   addAIMessage: (text) => set((state) => {
-    const newMessage = {
+    const newMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: 'ai',
       text,
