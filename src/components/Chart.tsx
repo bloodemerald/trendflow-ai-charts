@@ -5,53 +5,62 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
   BarChart,
   Bar,
   ReferenceLine,
-  ComposedChart,
   Area
 } from 'recharts';
-import { ChartContainer } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCcw } from 'lucide-react';
 
 // Custom candlestick component for recharts
 const CustomCandlestick = (props: any) => {
-  const { x, y, width, open, close, high, low, index } = props;
+  const { 
+    x, y, width, height, index,
+    open, close, high, low,
+    xAxis, yAxis, 
+    fill, stroke
+  } = props;
   
-  if (open === undefined || close === undefined || high === undefined || low === undefined) {
+  // Skip rendering if any required data is missing
+  if (!y || !open || !close || !high || !low) {
     return null;
   }
-
-  const isGrowing = close > open;
-  const color = isGrowing ? 'rgb(76, 175, 80)' : 'rgb(255, 82, 82)';
   
-  const candleHeight = Math.abs(y(close) - y(open));
-  const wickHeight = Math.abs(y(low) - y(high));
-  const wickY = Math.min(y(high), y(low));
-  const bodyY = Math.min(y(open), y(close));
+  // Calculate if candle is bullish (green) or bearish (red)
+  const isBullish = close > open;
+  const color = isBullish ? '#26A69A' : '#EF5350';
+  
+  // Calculate positions
+  const openY = y(open);
+  const closeY = y(close);
+  const highY = y(high);
+  const lowY = y(low);
+  
+  // Calculate candle body
+  const bodyY = Math.min(openY, closeY);
+  const bodyHeight = Math.abs(closeY - openY);
   
   return (
     <g key={`candle-${index}`}>
-      {/* Vertical wick line from high to low */}
+      {/* Wick line from high to low */}
       <line 
         x1={x + width / 2} 
         x2={x + width / 2} 
-        y1={y(high)}
-        y2={y(low)} 
+        y1={highY}
+        y2={lowY} 
         stroke={color} 
-        strokeWidth={1}
       />
       
       {/* Candle body */}
       <rect 
-        x={x}
+        x={x + width * 0.1}
         y={bodyY}
-        width={width} 
-        height={Math.max(1, candleHeight)}
+        width={width * 0.8} 
+        height={Math.max(1, bodyHeight) || 1}
         fill={color}
-        stroke={color}
+        stroke="none"
       />
     </g>
   );
@@ -59,28 +68,26 @@ const CustomCandlestick = (props: any) => {
 
 // Custom tooltip for candlestick data
 const CandlestickTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+  if (active && payload && payload.length > 0) {
     const data = payload[0].payload;
-    const date = new Date(data.timestamp);
-    
     return (
-      <div className="bg-card border border-border p-2 rounded shadow-lg text-xs">
-        <p className="font-medium">{date.toLocaleString()}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-          <span className="text-muted-foreground">Open:</span>
-          <span className="font-medium">${data.open.toFixed(2)}</span>
+      <div className="bg-background border border-border p-3 rounded-md shadow-md">
+        <p className="font-medium text-sm mb-1">{new Date(data.timestamp).toLocaleString()}</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <span className="text-muted-foreground text-xs">Open:</span>
+          <span className="font-mono text-xs font-medium">${data.open.toFixed(2)}</span>
           
-          <span className="text-muted-foreground">High:</span>
-          <span className="font-medium text-chart-green">${data.high.toFixed(2)}</span>
+          <span className="text-muted-foreground text-xs">High:</span>
+          <span className="font-mono text-xs font-medium text-green-500">${data.high.toFixed(2)}</span>
           
-          <span className="text-muted-foreground">Low:</span>
-          <span className="font-medium text-chart-red">${data.low.toFixed(2)}</span>
+          <span className="text-muted-foreground text-xs">Low:</span>
+          <span className="font-mono text-xs font-medium text-red-500">${data.low.toFixed(2)}</span>
           
-          <span className="text-muted-foreground">Close:</span>
-          <span className="font-medium">${data.close.toFixed(2)}</span>
+          <span className="text-muted-foreground text-xs">Close:</span>
+          <span className="font-mono text-xs font-medium">${data.close.toFixed(2)}</span>
           
-          <span className="text-muted-foreground">Volume:</span>
-          <span className="font-medium">{data.volume.toLocaleString()}</span>
+          <span className="text-muted-foreground text-xs">Volume:</span>
+          <span className="font-mono text-xs font-medium">{data.volume.toLocaleString()}</span>
         </div>
       </div>
     );
@@ -221,7 +228,7 @@ const Chart = () => {
 
   if (isLoading && chartData.length === 0) {
     return (
-      <div className="chart-container flex items-center justify-center">
+      <div className="chart-container flex items-center justify-center h-[500px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">Loading chart data...</span>
       </div>
@@ -256,69 +263,137 @@ const Chart = () => {
       
       <div className="chart-container">
         {/* Price chart container */}
-        <div className="h-[350px] w-full">
-          <ChartContainer config={{}}>
-            <ComposedChart
-              data={processedData}
-              margin={{ top: 20, right: 50, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
-              <XAxis 
-                dataKey="timestamp" 
-                tickFormatter={formatDate}
-                stroke="#555"
-                tick={{ fill: '#999' }}
-              />
-              <YAxis 
-                domain={['auto', 'auto']} 
-                tick={{ fill: '#999' }}
-                stroke="#555" 
-                orientation="right"
-              />
-              
-              <Tooltip content={<CandlestickTooltip />} />
-              
-              {/* Render each candlestick */}
-              {chartData.map((entry, index) => (
-                <CustomCandlestick
-                  key={`candle-${index}`}
-                  x={index * (100 / chartData.length)}
-                  width={(100 / chartData.length) * 0.6}
-                  open={entry.open}
-                  close={entry.close}
-                  high={entry.high}
-                  low={entry.low}
-                  index={index}
+        <div className="h-[350px] w-full bg-background border border-border rounded-md">
+          <ChartContainer config={{}} className="dark:bg-card bg-card">
+            <svg width="100%" height="350">
+              <g>
+                {/* Background grid */}
+                <CartesianGrid 
+                  height={310} 
+                  width="100%" 
+                  strokeDasharray="3 3" 
+                  vertical={true} 
+                  horizontal={true}
+                  stroke="rgba(255,255,255,0.1)"
                 />
-              ))}
-              
-              {/* SMA Line if indicator is active */}
-              {indicators.includes('sma') && (
-                <Area 
-                  type="monotone" 
-                  dataKey="sma" 
-                  stroke="#9C27B0" 
-                  fill="rgba(156, 39, 176, 0.1)"
-                  dot={false} 
-                  strokeWidth={1.5} 
-                />
-              )}
-              
-              {/* Add reference line for current price */}
-              {chartData.length > 0 && (
-                <ReferenceLine
-                  y={currentPrice}
-                  stroke="#2196F3"
-                  strokeDasharray="3 3"
-                />
-              )}
-            </ComposedChart>
+                
+                {/* X and Y axis will be handled manually since we're custom rendering */}
+                
+                {/* Render candlesticks */}
+                {processedData.map((entry, index) => {
+                  const xPos = (index / processedData.length) * 100;
+                  const width = (90 / processedData.length);
+                  
+                  // Y-axis scaling functions (simplified for example)
+                  const yScale = (val: number) => {
+                    // Find min and max values in data for scaling
+                    const minPrice = Math.min(...processedData.map(d => d.low));
+                    const maxPrice = Math.max(...processedData.map(d => d.high));
+                    const range = maxPrice - minPrice;
+                    // Padding of 5% at top and bottom
+                    const paddedMin = minPrice - (range * 0.05);
+                    const paddedMax = maxPrice + (range * 0.05);
+                    const paddedRange = paddedMax - paddedMin;
+                    
+                    // Invert Y coordinate (SVG y is top-to-bottom)
+                    return 310 - ((val - paddedMin) / paddedRange * 280);
+                  };
+                  
+                  return (
+                    <g key={`candle-group-${index}`} transform={`translate(${xPos}%, 0)`}>
+                      {/* Draw candle wick (high to low) */}
+                      <line
+                        x1={width / 2}
+                        x2={width / 2}
+                        y1={yScale(entry.high)}
+                        y2={yScale(entry.low)}
+                        stroke={entry.close >= entry.open ? "#26A69A" : "#EF5350"}
+                        strokeWidth={1}
+                      />
+                      
+                      {/* Draw candle body */}
+                      <rect
+                        x={width * 0.1}
+                        y={Math.min(yScale(entry.open), yScale(entry.close))}
+                        width={width * 0.8}
+                        height={Math.max(1, Math.abs(yScale(entry.close) - yScale(entry.open)))}
+                        fill={entry.close >= entry.open ? "#26A69A" : "#EF5350"}
+                      />
+                    </g>
+                  );
+                })}
+                
+                {/* SMA line if indicator is active */}
+                {indicators.includes('sma') && processedData.filter(d => d.sma).map((entry, index) => {
+                  // Only render if we have a previous point to connect to
+                  if (index > 0 && processedData[index - 1].sma) {
+                    const minPrice = Math.min(...processedData.map(d => d.low));
+                    const maxPrice = Math.max(...processedData.map(d => d.high));
+                    const range = maxPrice - minPrice;
+                    const paddedMin = minPrice - (range * 0.05);
+                    const paddedMax = maxPrice + (range * 0.05);
+                    const paddedRange = paddedMax - paddedMin;
+                    
+                    const yScale = (val: number) => 310 - ((val - paddedMin) / paddedRange * 280);
+                    
+                    const x1 = ((index - 1) / processedData.length) * 100;
+                    const x2 = (index / processedData.length) * 100;
+                    const y1 = yScale(processedData[index - 1].sma);
+                    const y2 = yScale(entry.sma);
+                    
+                    return (
+                      <line
+                        key={`sma-${index}`}
+                        x1={`${x1}%`}
+                        y1={y1}
+                        x2={`${x2}%`}
+                        y2={y2}
+                        stroke="#9C27B0"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+                
+                {/* Price axis on right */}
+                <g transform="translate(95%, 0)">
+                  {[...Array(5)].map((_, i) => {
+                    const minPrice = Math.min(...processedData.map(d => d.low));
+                    const maxPrice = Math.max(...processedData.map(d => d.high));
+                    const range = maxPrice - minPrice;
+                    const step = range / 4;
+                    const price = minPrice + (step * i);
+                    return (
+                      <g key={`price-${i}`}>
+                        <line
+                          x1="0"
+                          y1={310 - (i * 70)}
+                          x2="-5"
+                          y2={310 - (i * 70)}
+                          stroke="rgba(255,255,255,0.5)"
+                        />
+                        <text
+                          x="5"
+                          y={310 - (i * 70) + 4}
+                          fontSize="10"
+                          textAnchor="start"
+                          fill="rgba(255,255,255,0.7)"
+                        >
+                          {price.toFixed(2)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              </g>
+            </svg>
           </ChartContainer>
         </div>
 
         {/* Volume chart container */}
         <div className="h-[150px] mt-4 w-full">
-          <ChartContainer config={{}}>
+          <ChartContainer config={{}} className="dark:bg-card bg-card">
             <BarChart
               data={processedData}
               margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
@@ -342,10 +417,7 @@ const Chart = () => {
                 }}
               />
               <Tooltip
-                contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
-                labelStyle={{ color: '#E0E0E0' }}
-                itemStyle={{ color: '#E0E0E0' }}
-                formatter={(value: any) => [new Intl.NumberFormat().format(value), 'Volume']}
+                content={<CandlestickTooltip />}
               />
               <Bar
                 dataKey="volume"
