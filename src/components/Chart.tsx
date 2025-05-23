@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import { 
@@ -11,7 +10,7 @@ import {
   Bar,
   ReferenceLine,
   ComposedChart,
-  Line
+  Area
 } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
@@ -19,33 +18,75 @@ import { Loader2, RefreshCcw } from 'lucide-react';
 
 // Custom candlestick component for recharts
 const CustomCandlestick = (props: any) => {
-  const { x, y, width, height, open, close, high, low } = props;
+  const { x, y, width, open, close, high, low, index } = props;
+  
+  if (open === undefined || close === undefined || high === undefined || low === undefined) {
+    return null;
+  }
+
   const isGrowing = close > open;
-  const color = isGrowing ? '#4CAF50' : '#FF5252';
-  const bodyHeight = Math.abs(close - open);
-  const bodyY = isGrowing ? close : open;
+  const color = isGrowing ? 'rgb(76, 175, 80)' : 'rgb(255, 82, 82)';
+  
+  const candleHeight = Math.abs(y(close) - y(open));
+  const wickHeight = Math.abs(y(low) - y(high));
+  const wickY = Math.min(y(high), y(low));
+  const bodyY = Math.min(y(open), y(close));
   
   return (
-    <g>
-      {/* Wick line from high to low */}
+    <g key={`candle-${index}`}>
+      {/* Vertical wick line from high to low */}
       <line 
         x1={x + width / 2} 
-        y1={y + low} 
         x2={x + width / 2} 
-        y2={y + high} 
+        y1={y(high)}
+        y2={y(low)} 
         stroke={color} 
         strokeWidth={1}
       />
+      
       {/* Candle body */}
       <rect 
-        x={x} 
-        y={y + bodyY} 
+        x={x}
+        y={bodyY}
         width={width} 
-        height={bodyHeight || 1} // Ensure at least 1px height
-        fill={color} 
+        height={Math.max(1, candleHeight)}
+        fill={color}
+        stroke={color}
       />
     </g>
   );
+};
+
+// Custom tooltip for candlestick data
+const CandlestickTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const date = new Date(data.timestamp);
+    
+    return (
+      <div className="bg-card border border-border p-2 rounded shadow-lg text-xs">
+        <p className="font-medium">{date.toLocaleString()}</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
+          <span className="text-muted-foreground">Open:</span>
+          <span className="font-medium">${data.open.toFixed(2)}</span>
+          
+          <span className="text-muted-foreground">High:</span>
+          <span className="font-medium text-chart-green">${data.high.toFixed(2)}</span>
+          
+          <span className="text-muted-foreground">Low:</span>
+          <span className="font-medium text-chart-red">${data.low.toFixed(2)}</span>
+          
+          <span className="text-muted-foreground">Close:</span>
+          <span className="font-medium">${data.close.toFixed(2)}</span>
+          
+          <span className="text-muted-foreground">Volume:</span>
+          <span className="font-medium">{data.volume.toLocaleString()}</span>
+        </div>
+      </div>
+    );
+  }
+  
+  return null;
 };
 
 const Chart = () => {
@@ -187,6 +228,8 @@ const Chart = () => {
     );
   }
 
+  const currentPrice = chartData.length > 0 ? chartData[chartData.length - 1].close : 0;
+
   return (
     <div className="relative">
       {error && (
@@ -213,111 +256,104 @@ const Chart = () => {
       
       <div className="chart-container">
         {/* Price chart container */}
-        <ChartContainer config={{}} className="h-[350px]">
-          <ComposedChart
-            data={processedData}
-            margin={{ top: 20, right: 50, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
-            <XAxis 
-              dataKey="timestamp" 
-              tickFormatter={formatDate}
-              stroke="#555"
-              tick={{ fill: '#999' }}
-            />
-            <YAxis 
-              domain={['auto', 'auto']} 
-              tick={{ fill: '#999' }}
-              stroke="#555" 
-              orientation="right"
-            />
-            
-            <Tooltip
-              contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
-              labelStyle={{ color: '#E0E0E0' }}
-              itemStyle={{ color: '#E0E0E0' }}
-              formatter={(value: any, name: string) => {
-                if (name === 'sma') return [value.toFixed(2), 'SMA (14)'];
-                return [value, name];
-              }}
-              labelFormatter={(label) => {
-                const date = new Date(label);
-                return date.toLocaleString();
-              }}
-            />
-            
-            {/* Candlesticks */}
-            {chartData.map((d, i) => (
-              <CustomCandlestick
-                key={i}
-                x={(i * 100) / chartData.length + '%'}
-                width={(100 / chartData.length) * 0.6 + '%'}
-                open={d.open}
-                close={d.close}
-                high={d.high - d.low}
-                low={0}
-                y={0}
+        <div className="h-[350px] w-full">
+          <ChartContainer config={{}}>
+            <ComposedChart
+              data={processedData}
+              margin={{ top: 20, right: 50, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+              <XAxis 
+                dataKey="timestamp" 
+                tickFormatter={formatDate}
+                stroke="#555"
+                tick={{ fill: '#999' }}
               />
-            ))}
-            
-            {/* SMA Line if indicator is active */}
-            {indicators.includes('sma') && (
-              <Line 
-                type="monotone" 
-                dataKey="sma" 
-                stroke="#9C27B0" 
-                dot={false} 
-                strokeWidth={1} 
+              <YAxis 
+                domain={['auto', 'auto']} 
+                tick={{ fill: '#999' }}
+                stroke="#555" 
+                orientation="right"
               />
-            )}
-            
-            {/* Add reference line for current price */}
-            {chartData.length > 0 && (
-              <ReferenceLine
-                y={chartData[chartData.length - 1].close}
-                stroke="#2196F3"
-                strokeDasharray="3 3"
-              />
-            )}
-          </ComposedChart>
-        </ChartContainer>
+              
+              <Tooltip content={<CandlestickTooltip />} />
+              
+              {/* Render each candlestick */}
+              {chartData.map((entry, index) => (
+                <CustomCandlestick
+                  key={`candle-${index}`}
+                  x={index * (100 / chartData.length)}
+                  width={(100 / chartData.length) * 0.6}
+                  open={entry.open}
+                  close={entry.close}
+                  high={entry.high}
+                  low={entry.low}
+                  index={index}
+                />
+              ))}
+              
+              {/* SMA Line if indicator is active */}
+              {indicators.includes('sma') && (
+                <Area 
+                  type="monotone" 
+                  dataKey="sma" 
+                  stroke="#9C27B0" 
+                  fill="rgba(156, 39, 176, 0.1)"
+                  dot={false} 
+                  strokeWidth={1.5} 
+                />
+              )}
+              
+              {/* Add reference line for current price */}
+              {chartData.length > 0 && (
+                <ReferenceLine
+                  y={currentPrice}
+                  stroke="#2196F3"
+                  strokeDasharray="3 3"
+                />
+              )}
+            </ComposedChart>
+          </ChartContainer>
+        </div>
 
-        {/* Volume chart container - Now in a separate ChartContainer */}
-        <ChartContainer config={{}} className="h-[150px] mt-4">
-          <BarChart
-            data={processedData}
-            margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
-            <XAxis 
-              dataKey="timestamp" 
-              tickFormatter={formatDate}
-              stroke="#555"
-              tick={{ fill: '#999' }}
-            />
-            <YAxis
-              dataKey="volume"
-              orientation="right"
-              tick={{ fill: '#999' }}
-              stroke="#555"
-              tickFormatter={(value) => {
-                if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-                return value;
-              }}
-            />
-            <Tooltip
-              contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
-              labelStyle={{ color: '#E0E0E0' }}
-              itemStyle={{ color: '#E0E0E0' }}
-              formatter={(value: any) => [new Intl.NumberFormat().format(value), 'Volume']}
-            />
-            <Bar
-              dataKey="volume"
-              fill="rgba(33, 150, 243, 0.3)"
-            />
-          </BarChart>
-        </ChartContainer>
+        {/* Volume chart container */}
+        <div className="h-[150px] mt-4 w-full">
+          <ChartContainer config={{}}>
+            <BarChart
+              data={processedData}
+              margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+              <XAxis 
+                dataKey="timestamp" 
+                tickFormatter={formatDate}
+                stroke="#555"
+                tick={{ fill: '#999' }}
+              />
+              <YAxis
+                dataKey="volume"
+                orientation="right"
+                tick={{ fill: '#999' }}
+                stroke="#555"
+                tickFormatter={(value) => {
+                  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                  return value;
+                }}
+              />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#2A2F45', border: 'none' }}
+                labelStyle={{ color: '#E0E0E0' }}
+                itemStyle={{ color: '#E0E0E0' }}
+                formatter={(value: any) => [new Intl.NumberFormat().format(value), 'Volume']}
+              />
+              <Bar
+                dataKey="volume"
+                fill="rgba(33, 150, 243, 0.3)"
+              />
+            </BarChart>
+          </ChartContainer>
+        </div>
       </div>
       
       {/* Chart overlay for cursor changes based on active tool */}
