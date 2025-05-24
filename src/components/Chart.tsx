@@ -100,6 +100,7 @@ const Chart = () => {
   const { chartData, setChartData, symbol, timeFrame, activeTool, indicators } = useChartStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chartDimensions, setChartDimensions] = useState({ width: 800, height: 600 });
 
   // Format date based on timeframe
   const formatDate = (timestamp: string) => {
@@ -277,7 +278,17 @@ const Chart = () => {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Price chart container - takes up most of the space */}
         <div className="flex-1 w-full bg-background border border-border rounded-md relative min-h-0">
-          <svg width="100%" height="100%" className="overflow-hidden">
+          <svg 
+            width="100%" 
+            height="100%" 
+            className="overflow-hidden"
+            ref={(svg) => {
+              if (svg) {
+                const rect = svg.getBoundingClientRect();
+                setChartDimensions({ width: rect.width, height: rect.height });
+              }
+            }}
+          >
             {/* Background grid */}
             <defs>
               <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
@@ -288,12 +299,8 @@ const Chart = () => {
             
             {/* Render candlesticks */}
             {processedData.map((entry, index) => {
-              const svgRect = document.querySelector('svg')?.getBoundingClientRect();
-              const chartWidth = svgRect?.width || 800;
-              const chartHeight = svgRect?.height || 600;
-              
-              const candleWidth = Math.max(4, (chartWidth - 60) / processedData.length * 0.8);
-              const xPos = 40 + (index * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length - candleWidth) / 2;
+              const candleWidth = Math.max(4, (chartDimensions.width - 60) / processedData.length * 0.8);
+              const xPos = 40 + (index * ((chartDimensions.width - 60) / processedData.length)) + ((chartDimensions.width - 60) / processedData.length - candleWidth) / 2;
               
               const isBullish = entry.close >= entry.open;
               const color = isBullish ? "#26A69A" : "#EF5350";
@@ -340,8 +347,8 @@ const Chart = () => {
               const prevEntry = processedData[index - 1];
               if (!prevEntry.sma) return null;
               
-              const x1 = 40 + ((index - 1) * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length) / 2;
-              const x2 = 40 + (index * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length) / 2;
+              const x1 = 40 + ((index - 1) * ((chartDimensions.width - 60) / processedData.length)) + ((chartDimensions.width - 60) / processedData.length) / 2;
+              const x2 = 40 + (index * ((chartDimensions.width - 60) / processedData.length)) + ((chartDimensions.width - 60) / processedData.length) / 2;
               const y1 = yScale(prevEntry.sma);
               const y2 = yScale(entry.sma);
               
@@ -365,15 +372,15 @@ const Chart = () => {
               return (
                 <g key={`price-axis-${i}`}>
                   <line
-                    x1={350 - 50}
+                    x1={chartDimensions.width - 50}
                     y1={y}
-                    x2={350 - 45}
+                    x2={chartDimensions.width - 45}
                     y2={y}
                     stroke="rgba(255,255,255,0.3)"
                     strokeWidth={1}
                   />
                   <text
-                    x={350 - 40}
+                    x={chartDimensions.width - 40}
                     y={y + 4}
                     fontSize="10"
                     textAnchor="start"
