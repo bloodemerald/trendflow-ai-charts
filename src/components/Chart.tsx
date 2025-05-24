@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import { 
   XAxis, 
@@ -40,7 +40,7 @@ const CustomCandlestick = (props: any) => {
   
   // Calculate candle body
   const bodyY = Math.min(openY, closeY);
-  const bodyHeight = Math.abs(closeY - openY);
+  const bodyHeight = Math.max(1, bodyHeight) || 1;
   
   return (
     <g key={`candle-${index}`}>
@@ -101,6 +101,40 @@ const Chart = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chartDimensions, setChartDimensions] = useState({ width: 800, height: 600 });
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Memoized ref callback to prevent infinite loops
+  const svgRefCallback = useCallback((svg: SVGSVGElement | null) => {
+    svgRef.current = svg;
+    if (svg) {
+      const rect = svg.getBoundingClientRect();
+      // Only update if dimensions actually changed
+      setChartDimensions(prev => {
+        if (prev.width !== rect.width || prev.height !== rect.height) {
+          return { width: rect.width, height: rect.height };
+        }
+        return prev;
+      });
+    }
+  }, []);
+
+  // Handle window resize to update chart dimensions
+  useEffect(() => {
+    const handleResize = () => {
+      if (svgRef.current) {
+        const rect = svgRef.current.getBoundingClientRect();
+        setChartDimensions(prev => {
+          if (prev.width !== rect.width || prev.height !== rect.height) {
+            return { width: rect.width, height: rect.height };
+          }
+          return prev;
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Format date based on timeframe
   const formatDate = (timestamp: string) => {
@@ -279,15 +313,10 @@ const Chart = () => {
         {/* Price chart container - takes up most of the space */}
         <div className="flex-1 w-full bg-background border border-border rounded-md relative min-h-0">
           <svg 
+            ref={svgRefCallback}
             width="100%" 
             height="100%" 
             className="overflow-hidden"
-            ref={(svg) => {
-              if (svg) {
-                const rect = svg.getBoundingClientRect();
-                setChartDimensions({ width: rect.width, height: rect.height });
-              }
-            }}
           >
             {/* Background grid */}
             <defs>
