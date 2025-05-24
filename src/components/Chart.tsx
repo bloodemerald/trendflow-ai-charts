@@ -25,27 +25,15 @@ import { Loader2, RefreshCcw } from 'lucide-react';
 // CandlestickTooltip component has been moved to src/components/charting/CandlestickTooltip.tsx
 
 const Chart = () => {
-  const { 
-    symbol, 
-    timeFrame, 
-    activeTool, 
-    indicators,
-    // addDrawing, // addDrawing is used by hooks
-    // currentDrawingSettings, // currentDrawingSettings is used by hooks
-    selectedDrawingId,      
-    setSelectedDrawingId,   
-    // deleteDrawing // deleteDrawing is used by hooks
-  } = useChartStore(state => ({ // Select only necessary state
-    symbol: state.symbol,
-    timeFrame: state.timeFrame,
-    activeTool: state.activeTool,
-    indicators: state.indicators,
-    selectedDrawingId: state.selectedDrawingId,
-    setSelectedDrawingId: state.setSelectedDrawingId,
-    // deleteDrawing: state.deleteDrawing, // Not directly called by Chart.tsx
-    // addDrawing: state.addDrawing, // Not directly called by Chart.tsx
-    // currentDrawingSettings: state.currentDrawingSettings, // Not directly used by Chart.tsx render
-  }));
+  // Fix the store selector to prevent infinite rerenders
+  const symbol = useChartStore(state => state.symbol);
+  const timeFrame = useChartStore(state => state.timeFrame);
+  const activeTool = useChartStore(state => state.activeTool);
+  const indicators = useChartStore(state => state.indicators);
+  const selectedDrawingId = useChartStore(state => state.selectedDrawingId);
+  const setSelectedDrawingId = useChartStore(state => state.setSelectedDrawingId);
+  const drawings = useChartStore(state => state.drawings);
+  const currentDrawingSettings = useChartStore(state => state.currentDrawingSettings);
 
   // Data fetching hook
   const { 
@@ -294,8 +282,8 @@ const Chart = () => {
               );
             })}
 
-            {useChartStore.getState().drawings.map(drawing => {
-              const isSelected = drawing.id === useChartStore.getState().selectedDrawingId;
+            {drawings.map(drawing => {
+              const isSelected = drawing.id === selectedDrawingId;
               const baseStrokeWidth = drawing.lineWidth;
               const selectedStrokeWidth = baseStrokeWidth + (isSelected ? 2 : 0);
               const selectionColor = "rgba(0, 150, 255, 0.8)"; 
