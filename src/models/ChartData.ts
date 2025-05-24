@@ -5,6 +5,6 @@ export interface ChartData {
   high: number;
   low: number;
   close: number;
-  volume?: number; // Optional, as some contexts might not use it
+  volume: number; // Required to match store ChartData type
   sma?: number | null; // For indicators
 }

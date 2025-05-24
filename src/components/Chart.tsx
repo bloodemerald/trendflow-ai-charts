@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import type { DrawingObject, DrawingPoint } from '@/store/chartStore';
@@ -25,7 +26,7 @@ import { Loader2, RefreshCcw } from 'lucide-react';
 // CandlestickTooltip component has been moved to src/components/charting/CandlestickTooltip.tsx
 
 const Chart = () => {
-  // Fix the store selector to prevent infinite rerenders
+  // Fix the store selector to prevent infinite rerenders - use individual selectors
   const symbol = useChartStore(state => state.symbol);
   const timeFrame = useChartStore(state => state.timeFrame);
   const activeTool = useChartStore(state => state.activeTool);
