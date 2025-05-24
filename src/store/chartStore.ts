@@ -21,6 +21,31 @@ type ChatMessage = {
   timestamp: Date;
 };
 
+// --- BEGIN Drawing-related types ---
+export interface DrawingPoint {
+  x: number;
+  y: number;
+}
+
+export type DrawingObjectType = 'trendline' | 'rectangle' | 'text';
+
+export interface DrawingObject {
+  id: string;
+  type: DrawingObjectType;
+  points: DrawingPoint[];
+  color: string;
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+  lineWidth: number;
+  text?: string;
+}
+
+export interface CurrentDrawingSettings {
+  color: string;
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+  lineWidth: number;
+}
+// --- END Drawing-related types ---
+
 interface ChartState {
   symbol: string;
   setSymbol: (symbol: string) => void;
@@ -31,8 +56,9 @@ interface ChartState {
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
   indicators: string[];
-  addIndicator: (indicator: string) => void;
-  removeIndicator: (indicator: string) => void;
+  addIndicator: (indicator: string) => void; // Will be replaced by toggleIndicator
+  removeIndicator: (indicator: string) => void; // Will be replaced by toggleIndicator
+  toggleIndicator: (indicatorName: string) => void; // Added
   chatMessages: ChatMessage[];
   addUserMessage: (text: string) => void;
   addAIMessage: (text: string) => void;
@@ -40,6 +66,11 @@ interface ChartState {
   setIsAIAnalyzing: (isAnalyzing: boolean) => void;
   showDrawingSettings: boolean;
   setShowDrawingSettings: (show: boolean) => void;
+  // --- BEGIN Drawing-related state ---
+  drawings: DrawingObject[];
+  currentDrawingSettings: CurrentDrawingSettings;
+  selectedDrawingId: string | null; // Added for selection
+  // --- END Drawing-related state ---
   marketSummary: {
     open: number;
     high: number;
@@ -50,6 +81,16 @@ interface ChartState {
     volume: number;
   };
   updateMarketSummary: () => void;
+  // --- BEGIN Drawing-related actions ---
+  addDrawing: (drawing: DrawingObject) => void;
+  updateDrawingSetting: <K extends keyof CurrentDrawingSettings>(
+    key: K,
+    value: CurrentDrawingSettings[K]
+  ) => void;
+  setSelectedDrawingId: (id: string | null) => void; // Added for selection
+  deleteDrawing: (id: string) => void; // Added for deletion
+  updateDrawingProperties: (drawingId: string, properties: Partial<Omit<DrawingObject, 'id' | 'type' | 'points'>>) => void; // Added for property updates
+  // --- END Drawing-related actions ---
 }
 
 // Generate some mock data for initial rendering
@@ -106,13 +147,23 @@ export const useChartStore = create<ChartState>((set, get) => ({
   },
   activeTool: 'cursor',
   setActiveTool: (tool) => set({ activeTool: tool }),
-  indicators: ['sma'],
-  addIndicator: (indicator) => set((state) => ({ 
-    indicators: [...state.indicators, indicator] 
-  })),
-  removeIndicator: (indicator) => set((state) => ({ 
+  indicators: ['sma'], // Keep 'sma' as a default for now, or set to []
+  // Remove old addIndicator and removeIndicator
+  addIndicator: (indicator) => set((state) => { // This will be effectively replaced
+    if (!state.indicators.includes(indicator)) {
+      return { indicators: [...state.indicators, indicator] };
+    }
+    return {};
+  }),
+  removeIndicator: (indicator) => set((state) => ({ // This will be effectively replaced
     indicators: state.indicators.filter((i) => i !== indicator) 
   })),
+  toggleIndicator: (indicatorName) => set((state) => {
+    const newIndicators = state.indicators.includes(indicatorName)
+      ? state.indicators.filter(ind => ind !== indicatorName)
+      : [...state.indicators, indicatorName];
+    return { indicators: newIndicators };
+  }),
   chatMessages: initialMessages,
   addUserMessage: (text) => set((state) => {
     const newMessage: ChatMessage = {
@@ -142,6 +193,15 @@ export const useChartStore = create<ChartState>((set, get) => ({
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
   showDrawingSettings: false,
   setShowDrawingSettings: (show) => set({ showDrawingSettings: show }),
+  // --- BEGIN Drawing-related state initialization ---
+  drawings: [],
+  currentDrawingSettings: {
+    color: '#2196F3', // Default blue color
+    lineStyle: 'solid',
+    lineWidth: 1,
+  },
+  selectedDrawingId: null, // Initialized
+  // --- END Drawing-related state initialization ---
   marketSummary: {
     open: 0,
     high: 0,
@@ -186,5 +246,27 @@ export const useChartStore = create<ChartState>((set, get) => ({
         volume: totalVolume
       }
     });
-  }
+  },
+  // --- BEGIN Drawing-related action implementations ---
+  addDrawing: (drawing) =>
+    set((state) => ({ drawings: [...state.drawings, drawing] })),
+  updateDrawingSetting: (key, value) =>
+    set((state) => ({
+      currentDrawingSettings: {
+        ...state.currentDrawingSettings,
+        [key]: value,
+      },
+    })),
+  setSelectedDrawingId: (id) => set({ selectedDrawingId: id }),
+  deleteDrawing: (id) =>
+    set((state) => ({
+      drawings: state.drawings.filter((d) => d.id !== id),
+      selectedDrawingId: state.selectedDrawingId === id ? null : state.selectedDrawingId,
+    })),
+  updateDrawingProperties: (drawingId, properties) => set(state => ({
+    drawings: state.drawings.map(d => 
+      d.id === drawingId ? { ...d, ...properties } : d
+    ),
+  })),
+  // --- END Drawing-related action implementations ---
 }));

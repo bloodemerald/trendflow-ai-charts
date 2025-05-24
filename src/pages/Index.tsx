@@ -33,14 +33,14 @@ const Index = () => {
         <LeftSidebar />
         
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Chart header */}
-          <div className="p-4 pb-2">
+          {/* Chart header - Symbol and Timeframe now in global Header component */}
+          {/* <div className="p-4 pb-2">
             <h2 className="text-xl font-bold">{symbol}</h2>
             <p className="text-sm text-muted-foreground">Timeframe: {timeFrame}</p>
-          </div>
+          </div> */}
           
           {/* Full-height chart container */}
-          <div className="flex-1 px-4 min-h-0">
+          <div className="flex-1 p-4 min-h-0"> {/* Added padding to match the removed header's style */}
             <Chart />
           </div>
           
