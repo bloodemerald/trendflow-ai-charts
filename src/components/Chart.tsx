@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import { 
@@ -40,7 +41,7 @@ const CustomCandlestick = (props: any) => {
   
   // Calculate candle body
   const bodyY = Math.min(openY, closeY);
-  const bodyHeight = Math.max(1, bodyHeight) || 1;
+  const bodyHeight = Math.max(1, Math.abs(closeY - openY));
   
   return (
     <g key={`candle-${index}`}>
@@ -58,7 +59,7 @@ const CustomCandlestick = (props: any) => {
         x={x + width * 0.1}
         y={bodyY}
         width={width * 0.8} 
-        height={Math.max(1, bodyHeight) || 1}
+        height={bodyHeight}
         fill={color}
         stroke="none"
       />
