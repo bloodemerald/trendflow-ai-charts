@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import { 
@@ -237,6 +238,19 @@ const Chart = () => {
 
   const currentPrice = chartData.length > 0 ? chartData[chartData.length - 1].close : 0;
 
+  // Calculate price range for Y-axis scaling
+  const minPrice = Math.min(...processedData.map(d => d.low));
+  const maxPrice = Math.max(...processedData.map(d => d.high));
+  const range = maxPrice - minPrice;
+  const paddedMin = minPrice - (range * 0.05);
+  const paddedMax = maxPrice + (range * 0.05);
+  const paddedRange = paddedMax - paddedMin;
+
+  // Y-axis scaling function
+  const yScale = (val: number) => {
+    return 310 - ((val - paddedMin) / paddedRange * 280);
+  };
+
   return (
     <div className="relative">
       {error && (
@@ -263,132 +277,112 @@ const Chart = () => {
       
       <div className="chart-container">
         {/* Price chart container */}
-        <div className="h-[350px] w-full bg-background border border-border rounded-md">
-          <ChartContainer config={{}} className="dark:bg-card bg-card">
-            <svg width="100%" height="350">
-              <g>
-                {/* Background grid */}
-                <CartesianGrid 
-                  height={310} 
-                  width="100%" 
-                  strokeDasharray="3 3" 
-                  vertical={true} 
-                  horizontal={true}
-                  stroke="rgba(255,255,255,0.1)"
-                />
-                
-                {/* X and Y axis will be handled manually since we're custom rendering */}
-                
-                {/* Render candlesticks */}
-                {processedData.map((entry, index) => {
-                  const xPos = (index / processedData.length) * 100;
-                  const width = (90 / processedData.length);
+        <div className="h-[350px] w-full bg-background border border-border rounded-md relative">
+          <svg width="100%" height="350" className="overflow-hidden">
+            {/* Background grid */}
+            <defs>
+              <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            
+            {/* Render candlesticks */}
+            {processedData.map((entry, index) => {
+              const candleWidth = Math.max(4, (350 - 60) / processedData.length * 0.8);
+              const xPos = 40 + (index * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length - candleWidth) / 2;
+              
+              const isBullish = entry.close >= entry.open;
+              const color = isBullish ? "#26A69A" : "#EF5350";
+              
+              const openY = yScale(entry.open);
+              const closeY = yScale(entry.close);
+              const highY = yScale(entry.high);
+              const lowY = yScale(entry.low);
+              
+              const bodyY = Math.min(openY, closeY);
+              const bodyHeight = Math.max(1, Math.abs(closeY - openY));
+              
+              return (
+                <g key={`candle-${index}`}>
+                  {/* Wick line */}
+                  <line
+                    x1={xPos + candleWidth / 2}
+                    x2={xPos + candleWidth / 2}
+                    y1={highY}
+                    y2={lowY}
+                    stroke={color}
+                    strokeWidth={1}
+                  />
                   
-                  // Y-axis scaling functions (simplified for example)
-                  const yScale = (val: number) => {
-                    // Find min and max values in data for scaling
-                    const minPrice = Math.min(...processedData.map(d => d.low));
-                    const maxPrice = Math.max(...processedData.map(d => d.high));
-                    const range = maxPrice - minPrice;
-                    // Padding of 5% at top and bottom
-                    const paddedMin = minPrice - (range * 0.05);
-                    const paddedMax = maxPrice + (range * 0.05);
-                    const paddedRange = paddedMax - paddedMin;
-                    
-                    // Invert Y coordinate (SVG y is top-to-bottom)
-                    return 310 - ((val - paddedMin) / paddedRange * 280);
-                  };
-                  
-                  return (
-                    <g key={`candle-group-${index}`} transform={`translate(${xPos}%, 0)`}>
-                      {/* Draw candle wick (high to low) */}
-                      <line
-                        x1={width / 2}
-                        x2={width / 2}
-                        y1={yScale(entry.high)}
-                        y2={yScale(entry.low)}
-                        stroke={entry.close >= entry.open ? "#26A69A" : "#EF5350"}
-                        strokeWidth={1}
-                      />
-                      
-                      {/* Draw candle body */}
-                      <rect
-                        x={width * 0.1}
-                        y={Math.min(yScale(entry.open), yScale(entry.close))}
-                        width={width * 0.8}
-                        height={Math.max(1, Math.abs(yScale(entry.close) - yScale(entry.open)))}
-                        fill={entry.close >= entry.open ? "#26A69A" : "#EF5350"}
-                      />
-                    </g>
-                  );
-                })}
-                
-                {/* SMA line if indicator is active */}
-                {indicators.includes('sma') && processedData.filter(d => d.sma).map((entry, index) => {
-                  // Only render if we have a previous point to connect to
-                  if (index > 0 && processedData[index - 1].sma) {
-                    const minPrice = Math.min(...processedData.map(d => d.low));
-                    const maxPrice = Math.max(...processedData.map(d => d.high));
-                    const range = maxPrice - minPrice;
-                    const paddedMin = minPrice - (range * 0.05);
-                    const paddedMax = maxPrice + (range * 0.05);
-                    const paddedRange = paddedMax - paddedMin;
-                    
-                    const yScale = (val: number) => 310 - ((val - paddedMin) / paddedRange * 280);
-                    
-                    const x1 = ((index - 1) / processedData.length) * 100;
-                    const x2 = (index / processedData.length) * 100;
-                    const y1 = yScale(processedData[index - 1].sma);
-                    const y2 = yScale(entry.sma);
-                    
-                    return (
-                      <line
-                        key={`sma-${index}`}
-                        x1={`${x1}%`}
-                        y1={y1}
-                        x2={`${x2}%`}
-                        y2={y2}
-                        stroke="#9C27B0"
-                        strokeWidth={1.5}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-                
-                {/* Price axis on right */}
-                <g transform="translate(95%, 0)">
-                  {[...Array(5)].map((_, i) => {
-                    const minPrice = Math.min(...processedData.map(d => d.low));
-                    const maxPrice = Math.max(...processedData.map(d => d.high));
-                    const range = maxPrice - minPrice;
-                    const step = range / 4;
-                    const price = minPrice + (step * i);
-                    return (
-                      <g key={`price-${i}`}>
-                        <line
-                          x1="0"
-                          y1={310 - (i * 70)}
-                          x2="-5"
-                          y2={310 - (i * 70)}
-                          stroke="rgba(255,255,255,0.5)"
-                        />
-                        <text
-                          x="5"
-                          y={310 - (i * 70) + 4}
-                          fontSize="10"
-                          textAnchor="start"
-                          fill="rgba(255,255,255,0.7)"
-                        >
-                          {price.toFixed(2)}
-                        </text>
-                      </g>
-                    );
-                  })}
+                  {/* Candle body */}
+                  <rect
+                    x={xPos}
+                    y={bodyY}
+                    width={candleWidth}
+                    height={bodyHeight}
+                    fill={color}
+                    stroke={color}
+                    strokeWidth={isBullish ? 1 : 0}
+                    fillOpacity={isBullish ? 0 : 1}
+                  />
                 </g>
-              </g>
-            </svg>
-          </ChartContainer>
+              );
+            })}
+            
+            {/* SMA line if indicator is active */}
+            {indicators.includes('sma') && processedData.map((entry, index) => {
+              if (!entry.sma || index === 0) return null;
+              
+              const prevEntry = processedData[index - 1];
+              if (!prevEntry.sma) return null;
+              
+              const x1 = 40 + ((index - 1) * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length) / 2;
+              const x2 = 40 + (index * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length) / 2;
+              const y1 = yScale(prevEntry.sma);
+              const y2 = yScale(entry.sma);
+              
+              return (
+                <line
+                  key={`sma-${index}`}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="#9C27B0"
+                  strokeWidth={1.5}
+                />
+              );
+            })}
+            
+            {/* Price axis on right */}
+            {[...Array(6)].map((_, i) => {
+              const price = paddedMin + (paddedRange / 5 * i);
+              const y = yScale(price);
+              return (
+                <g key={`price-axis-${i}`}>
+                  <line
+                    x1={350 - 50}
+                    y1={y}
+                    x2={350 - 45}
+                    y2={y}
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={350 - 40}
+                    y={y + 4}
+                    fontSize="10"
+                    textAnchor="start"
+                    fill="rgba(255,255,255,0.7)"
+                    fontFamily="monospace"
+                  >
+                    ${price.toFixed(2)}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
 
         {/* Volume chart container */}
