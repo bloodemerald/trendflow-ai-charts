@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import type { DrawingPoint, DrawingObject } from '@/store/chartStore';
@@ -16,10 +17,9 @@ interface UseTextAnnotationReturn {
 }
 
 export const useTextAnnotation = (): UseTextAnnotationReturn => {
-  const { addDrawing, currentDrawingSettings } = useChartStore(state => ({
-    addDrawing: state.addDrawing,
-    currentDrawingSettings: state.currentDrawingSettings,
-  }));
+  // Fix the store selector to prevent infinite rerenders - use individual selectors
+  const addDrawing = useChartStore(state => state.addDrawing);
+  const currentDrawingSettings = useChartStore(state => state.currentDrawingSettings);
 
   const [isTextAnnotating, setIsTextAnnotating] = useState(false);
   const [textAnnotationPoint, setTextAnnotationPoint] = useState<DrawingPoint | null>(null);
