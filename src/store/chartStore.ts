@@ -10,7 +10,7 @@ type ChartData = {
   volume: number;
 };
 
-type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
+export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
 
 type Tool = 'cursor' | 'crosshair' | 'trendline' | 'fibonacci' | 'rectangle' | 'text';
 
@@ -29,19 +29,21 @@ export interface DrawingPoint {
 
 export type DrawingObjectType = 'trendline' | 'rectangle' | 'text';
 
+export type LineStyle = 'solid' | 'dashed' | 'dotted';
+
 export interface DrawingObject {
   id: string;
   type: DrawingObjectType;
   points: DrawingPoint[];
   color: string;
-  lineStyle: 'solid' | 'dashed' | 'dotted';
+  lineStyle: LineStyle;
   lineWidth: number;
   text?: string;
 }
 
 export interface CurrentDrawingSettings {
   color: string;
-  lineStyle: 'solid' | 'dashed' | 'dotted';
+  lineStyle: LineStyle;
   lineWidth: number;
 }
 // --- END Drawing-related types ---

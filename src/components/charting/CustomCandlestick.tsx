@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Define a props interface for better type safety
@@ -6,7 +7,7 @@ interface CustomCandlestickProps {
   // The 'y' prop is actually the yScale function from the parent chart
   y: (value: number) => number; 
   width: number;
-  height: number; // This might not be directly used if y-scale handles positions
+  height?: number; // Make this optional since it's not used in calculations
   index: number;
   open: number;
   close: number;
