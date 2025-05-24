@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import { 
@@ -229,7 +228,7 @@ const Chart = () => {
 
   if (isLoading && chartData.length === 0) {
     return (
-      <div className="chart-container flex items-center justify-center h-[500px]">
+      <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">Loading chart data...</span>
       </div>
@@ -252,7 +251,7 @@ const Chart = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative h-full flex flex-col">
       {error && (
         <div className="absolute top-0 left-0 right-0 bg-destructive/10 text-destructive p-2 rounded-t-md z-10">
           {error}
@@ -275,10 +274,10 @@ const Chart = () => {
         </Button>
       </div>
       
-      <div className="chart-container">
-        {/* Price chart container */}
-        <div className="h-[350px] w-full bg-background border border-border rounded-md relative">
-          <svg width="100%" height="350" className="overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Price chart container - takes up most of the space */}
+        <div className="flex-1 w-full bg-background border border-border rounded-md relative min-h-0">
+          <svg width="100%" height="100%" className="overflow-hidden">
             {/* Background grid */}
             <defs>
               <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
@@ -289,8 +288,12 @@ const Chart = () => {
             
             {/* Render candlesticks */}
             {processedData.map((entry, index) => {
-              const candleWidth = Math.max(4, (350 - 60) / processedData.length * 0.8);
-              const xPos = 40 + (index * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length - candleWidth) / 2;
+              const svgRect = document.querySelector('svg')?.getBoundingClientRect();
+              const chartWidth = svgRect?.width || 800;
+              const chartHeight = svgRect?.height || 600;
+              
+              const candleWidth = Math.max(4, (chartWidth - 60) / processedData.length * 0.8);
+              const xPos = 40 + (index * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length - candleWidth) / 2;
               
               const isBullish = entry.close >= entry.open;
               const color = isBullish ? "#26A69A" : "#EF5350";
@@ -337,8 +340,8 @@ const Chart = () => {
               const prevEntry = processedData[index - 1];
               if (!prevEntry.sma) return null;
               
-              const x1 = 40 + ((index - 1) * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length) / 2;
-              const x2 = 40 + (index * ((350 - 60) / processedData.length)) + ((350 - 60) / processedData.length) / 2;
+              const x1 = 40 + ((index - 1) * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length) / 2;
+              const x2 = 40 + (index * ((chartWidth - 60) / processedData.length)) + ((chartWidth - 60) / processedData.length) / 2;
               const y1 = yScale(prevEntry.sma);
               const y2 = yScale(entry.sma);
               
@@ -385,8 +388,8 @@ const Chart = () => {
           </svg>
         </div>
 
-        {/* Volume chart container */}
-        <div className="h-[150px] mt-4 w-full">
+        {/* Volume chart container - smaller at bottom */}
+        <div className="h-32 mt-2 w-full">
           <ChartContainer config={{}} className="dark:bg-card bg-card">
             <BarChart
               data={processedData}
