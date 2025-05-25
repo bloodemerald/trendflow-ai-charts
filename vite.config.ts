@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
   test: {
     globals: true,
     environment: 'jsdom',
-    // setupFiles: './src/setupTests.ts', // Removed for now as it's not needed
+    setupFiles: './src/test-setup.ts', // Configured setup file
     css: true, // If your components import CSS files
   },
 }));
