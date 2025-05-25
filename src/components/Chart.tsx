@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import type { DrawingObject, DrawingPoint } from '@/store/chartStore';
-import { getStrokeDashArray, hexToRgba, calculateSMA, formatDate } from '@/lib/chartUtils'; // Updated imports
+import { getStrokeDashArray, hexToRgba, calculateSMA, formatDate } from '@/lib/chartUtils';
 import { v4 as uuidv4 } from 'uuid'; 
 import { useTextAnnotation } from '@/hooks/useTextAnnotation';
 import { useDrawingTools } from '@/hooks/useDrawingTools';
@@ -10,6 +9,7 @@ import { useCrosshair } from '@/hooks/useCrosshair';
 import { useMarketData } from '@/hooks/useMarketData';
 import { CustomCandlestick } from '@/components/charting/CustomCandlestick';
 import { CandlestickTooltip } from '@/components/charting/CandlestickTooltip';
+import ChartControls from '@/components/ChartControls';
 import { 
   XAxis, 
   YAxis, 
@@ -17,13 +17,10 @@ import {
   Tooltip, 
   BarChart,
   Bar
-} from 'recharts'; // Removed ReferenceLine, Area as they are not used
-import { ChartContainer } from '@/components/ui/chart'; // Removed ChartTooltipContent as it's not used
+} from 'recharts';
+import { ChartContainer } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCcw } from 'lucide-react';
-
-// CustomCandlestick component has been moved to src/components/charting/CustomCandlestick.tsx
-// CandlestickTooltip component has been moved to src/components/charting/CandlestickTooltip.tsx
 
 const Chart = () => {
   // Fix the store selector to prevent infinite rerenders - use individual selectors
@@ -35,6 +32,7 @@ const Chart = () => {
   const setSelectedDrawingId = useChartStore(state => state.setSelectedDrawingId);
   const drawings = useChartStore(state => state.drawings);
   const currentDrawingSettings = useChartStore(state => state.currentDrawingSettings);
+  const zoomLevel = useChartStore(state => state.zoomLevel);
 
   // Data fetching hook
   const { 
@@ -124,14 +122,14 @@ const Chart = () => {
     );
   }
 
-  // const currentPrice = chartData && chartData.length > 0 ? chartData[chartData.length - 1].close : 0; // Not used currently
-
-  // Calculate price range for Y-axis scaling
+  // Calculate price range for Y-axis scaling with zoom
   const minPrice = processedData && processedData.length > 0 ? Math.min(...processedData.map(d => d.low ?? 0)) : 0;
   const maxPrice = processedData && processedData.length > 0 ? Math.max(...processedData.map(d => d.high ?? 0)) : 100;
   const range = maxPrice - minPrice;
-  const paddedMin = minPrice - (range * 0.05);
-  const paddedMax = maxPrice + (range * 0.05);
+  const zoomedRange = range / zoomLevel;
+  const centerPrice = (maxPrice + minPrice) / 2;
+  const paddedMin = centerPrice - (zoomedRange * 0.55);
+  const paddedMax = centerPrice + (zoomedRange * 0.55);
   const paddedRange = paddedMax - paddedMin;
 
   // Y-axis scaling function
@@ -182,6 +180,8 @@ const Chart = () => {
         </div>
       )}
       
+      <ChartControls />
+      
       <div className="absolute top-2 right-2 z-10">
         <Button 
           variant="ghost" 
@@ -224,9 +224,8 @@ const Chart = () => {
             <rect width="100%" height="100%" fill="url(#grid)" />
             
             {processedData && processedData.length > 0 && processedData.map((entry, index) => {
-              // const candleWidth = Math.max(4, (chartDimensions.width - 60) / processedData.length * 0.8);
               const xPos = 40 + (index * ((chartDimensions.width - 60) / processedData.length)); 
-              const slotWidth = ((chartDimensions.width - 60) / processedData.length);
+              const slotWidth = ((chartDimensions.width - 60) / processedData.length) * zoomLevel;
 
               return (
                 <CustomCandlestick

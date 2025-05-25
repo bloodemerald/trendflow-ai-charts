@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 type ChartData = {
@@ -71,8 +70,15 @@ interface ChartState {
   // --- BEGIN Drawing-related state ---
   drawings: DrawingObject[];
   currentDrawingSettings: CurrentDrawingSettings;
-  selectedDrawingId: string | null; // Added for selection
+  selectedDrawingId: string | null;
   // --- END Drawing-related state ---
+  // --- BEGIN Zoom-related state ---
+  zoomLevel: number;
+  setZoomLevel: (level: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  // --- END Zoom-related state ---
   marketSummary: {
     open: number;
     high: number;
@@ -89,9 +95,10 @@ interface ChartState {
     key: K,
     value: CurrentDrawingSettings[K]
   ) => void;
-  setSelectedDrawingId: (id: string | null) => void; // Added for selection
-  deleteDrawing: (id: string) => void; // Added for deletion
-  updateDrawingProperties: (drawingId: string, properties: Partial<Omit<DrawingObject, 'id' | 'type' | 'points'>>) => void; // Added for property updates
+  setSelectedDrawingId: (id: string | null) => void;
+  deleteDrawing: (id: string) => void;
+  updateDrawingProperties: (drawingId: string, properties: Partial<Omit<DrawingObject, 'id' | 'type' | 'points'>>) => void;
+  clearAllDrawings: () => void;
   // --- END Drawing-related actions ---
 }
 
@@ -204,6 +211,13 @@ export const useChartStore = create<ChartState>((set, get) => ({
   },
   selectedDrawingId: null, // Initialized
   // --- END Drawing-related state initialization ---
+  // --- BEGIN Zoom-related state initialization ---
+  zoomLevel: 1,
+  setZoomLevel: (level) => set({ zoomLevel: Math.max(0.5, Math.min(5, level)) }),
+  zoomIn: () => set((state) => ({ zoomLevel: Math.min(5, state.zoomLevel * 1.2) })),
+  zoomOut: () => set((state) => ({ zoomLevel: Math.max(0.5, state.zoomLevel / 1.2) })),
+  resetZoom: () => set({ zoomLevel: 1 }),
+  // --- END Zoom-related state initialization ---
   marketSummary: {
     open: 0,
     high: 0,
@@ -270,5 +284,6 @@ export const useChartStore = create<ChartState>((set, get) => ({
       d.id === drawingId ? { ...d, ...properties } : d
     ),
   })),
+  clearAllDrawings: () => set({ drawings: [], selectedDrawingId: null }),
   // --- END Drawing-related action implementations ---
 }));
