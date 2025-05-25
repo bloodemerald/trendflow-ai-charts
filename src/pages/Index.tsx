@@ -33,106 +33,109 @@ const Index = () => {
         <LeftSidebar />
         
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Chart header - Symbol and Timeframe now in global Header component */}
-          {/* <div className="p-4 pb-2">
-            <h2 className="text-xl font-bold">{symbol}</h2>
-            <p className="text-sm text-muted-foreground">Timeframe: {timeFrame}</p>
-          </div> */}
-          
-          {/* Full-height chart container */}
-          <div className="flex-1 p-4 min-h-0"> {/* Added padding to match the removed header's style */}
+          {/* Chart container - takes most of the space */}
+          <div className="flex-1 p-4 min-h-0">
             <Chart />
           </div>
           
-          {/* Bottom panels - Market Summary */}
-          <div className="p-4 pt-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-card p-4 rounded-md border border-chart-grid">
-                <h3 className="text-sm font-medium">Market Summary</h3>
-                <div className="mt-2 space-y-1 text-sm">
+          {/* Bottom panels - Market Summary with proper spacing */}
+          <div className="p-4 border-t border-chart-grid bg-card/50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Market Summary Panel */}
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Market Summary</h3>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Open</span>
-                    <span className="font-medium">${formatPrice(marketSummary.open)}</span>
+                    <span className="text-muted-foreground">Open</span>
+                    <span className="font-medium text-foreground">${formatPrice(marketSummary.open)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>High</span>
+                    <span className="text-muted-foreground">High</span>
                     <span className="font-medium text-chart-green">${formatPrice(marketSummary.high)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Low</span>
+                    <span className="text-muted-foreground">Low</span>
                     <span className="font-medium text-chart-red">${formatPrice(marketSummary.low)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Last</span>
-                    <span className="font-medium">${formatPrice(marketSummary.close)}</span>
+                    <span className="text-muted-foreground">Last</span>
+                    <span className="font-medium text-foreground">${formatPrice(marketSummary.close)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Change</span>
+                    <span className="text-muted-foreground">Change</span>
                     <span className={`font-medium ${marketSummary.change >= 0 ? 'text-chart-green' : 'text-chart-red'}`}>
                       {marketSummary.change >= 0 ? '+' : ''}{formatPrice(marketSummary.change)} ({marketSummary.changePercent.toFixed(2)}%)
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Volume</span>
-                    <span className="font-medium">{formatVolume(marketSummary.volume)}</span>
+                    <span className="text-muted-foreground">Volume</span>
+                    <span className="font-medium text-foreground">{formatVolume(marketSummary.volume)}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-card p-4 rounded-md border border-chart-grid">
-                <h3 className="text-sm font-medium">Technical Indicators</h3>
-                <div className="mt-2 space-y-1 text-sm">
+              {/* Technical Indicators Panel */}
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Technical Indicators</h3>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>RSI (14)</span>
-                    <span className="font-medium">
-                      {Math.round(50 + (marketSummary.changePercent * 2)).toFixed(1)}
+                    <span className="text-muted-foreground">RSI (14)</span>
+                    <span className="font-medium text-foreground">
+                      {Math.min(100, Math.max(0, Math.round(50 + (marketSummary.changePercent * 2)))).toFixed(1)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>MACD</span>
+                    <span className="text-muted-foreground">MACD</span>
                     <span className={`font-medium ${marketSummary.change >= 0 ? 'text-chart-green' : 'text-chart-red'}`}>
                       {marketSummary.change >= 0 ? 'Bullish' : 'Bearish'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>MA (50)</span>
-                    <span className="font-medium">${formatPrice(marketSummary.close * 0.95)}</span>
+                    <span className="text-muted-foreground">MA (50)</span>
+                    <span className="font-medium text-foreground">${formatPrice(marketSummary.close * 0.95)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>MA (200)</span>
-                    <span className="font-medium">${formatPrice(marketSummary.close * 0.9)}</span>
+                    <span className="text-muted-foreground">MA (200)</span>
+                    <span className="font-medium text-foreground">${formatPrice(marketSummary.close * 0.9)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bollinger Bands</span>
+                    <span className="font-medium text-foreground">
+                      {marketSummary.close > marketSummary.open ? 'Upper' : 'Lower'}
+                    </span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-card p-4 rounded-md border border-chart-grid">
-                <h3 className="text-sm font-medium">Recent Signals</h3>
-                <div className="mt-2 space-y-2 text-sm">
+              {/* Recent Signals Panel */}
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Recent Signals</h3>
+                <div className="space-y-3 text-sm">
                   <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full ${marketSummary.change >= 0 ? 'bg-chart-green' : 'bg-chart-red'} mr-2`}></div>
-                    <span>
+                    <div className={`w-2 h-2 rounded-full ${marketSummary.change >= 0 ? 'bg-chart-green' : 'bg-chart-red'} mr-3 flex-shrink-0`}></div>
+                    <span className="text-muted-foreground">
                       {marketSummary.change >= 0 
                         ? 'Bullish momentum on current timeframe' 
                         : 'Bearish pressure on current timeframe'}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2"></div>
-                    <span>
+                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-3 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">
                       {marketSummary.high > marketSummary.close * 1.02
                         ? `Resistance hit at $${formatPrice(marketSummary.high)}`
                         : `Approaching resistance at $${formatPrice(marketSummary.close * 1.05)}`}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2"></div>
-                    <span>
+                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-3 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">
                       Volume {marketSummary.volume > 10000 ? 'increasing' : 'decreasing'}
                     </span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-green mr-2"></div>
-                    <span>
+                    <div className="w-2 h-2 rounded-full bg-chart-green mr-3 flex-shrink-0"></div>
+                    <span className="text-muted-foreground">
                       {`Support forming at $${formatPrice(marketSummary.low)}`}
                     </span>
                   </div>
