@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useChartStore } from '@/store/chartStore';
+import { useChartStore } from '@/store/chartStore'; // Make sure useChartStore is correctly imported
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Send } from 'lucide-react';
 
 const RightSidebar = () => {
-  const { chatMessages, addUserMessage, addAIMessage, isAIAnalyzing, symbol } = useChartStore();
+  // Removed addAIMessage and symbol as they are not directly used here anymore
+  const { chatMessages, addUserMessage, isAIAnalyzing } = useChartStore();
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -21,22 +22,10 @@ const RightSidebar = () => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
     
-    addUserMessage(inputMessage);
+    addUserMessage(inputMessage); // This will now trigger the AI response via chartStore
     setInputMessage('');
-    
-    // Simulate AI response after a short delay
-    setTimeout(() => {
-      const responses = [
-        `Based on the ${symbol} chart, I can see a potential bullish pattern forming. The recent price action shows increased buying pressure.`,
-        `Looking at the current ${symbol} chart, there appears to be a double top pattern, which is typically bearish. Consider waiting for confirmation before taking action.`,
-        `The ${symbol} chart shows strong support at the current level with increasing volume. This could indicate accumulation phase.`,
-        `I've analyzed the ${symbol} chart and noticed a bearish divergence in the RSI indicator. This often precedes a price correction.`,
-        `The recent candlestick patterns on ${symbol} suggest indecision in the market. It might be best to wait for a clearer signal before making any trades.`
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      addAIMessage(randomResponse);
-    }, 1500);
+    // The simulated AI response (setTimeout and addAIMessage call) is removed.
+    // The actual AI response is handled by the updated addUserMessage in chartStore.
   };
 
   return (
@@ -71,7 +60,7 @@ const RightSidebar = () => {
           </div>
         )}
         
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} data-testid="messages-end" />
       </div>
       
       <div className="p-3 border-t border-chart-grid">
@@ -89,6 +78,7 @@ const RightSidebar = () => {
             size="icon" 
             className="ml-2" 
             disabled={isAIAnalyzing || !inputMessage.trim()}
+            aria-label="Send message" // Added aria-label
           >
             <Send size={16} />
           </Button>

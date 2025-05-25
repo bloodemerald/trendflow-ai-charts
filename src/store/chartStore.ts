@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getAIResponse } from '../services/aiService';
 
 type ChartData = {
   timestamp: string;
@@ -62,7 +63,7 @@ interface ChartState {
   toggleIndicator: (indicatorName: string) => void; // Added
   chatMessages: ChatMessage[];
   addUserMessage: (text: string) => void;
-  addAIMessage: (text: string) => void;
+  // addAIMessage: (text: string) => void; // To be removed
   isAIAnalyzing: boolean;
   setIsAIAnalyzing: (isAnalyzing: boolean) => void;
   showDrawingSettings: boolean;
@@ -174,30 +175,58 @@ export const useChartStore = create<ChartState>((set, get) => ({
     return { indicators: newIndicators };
   }),
   chatMessages: initialMessages,
-  addUserMessage: (text) => set((state) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text,
-      timestamp: new Date()
-    };
-    return { 
-      chatMessages: [...state.chatMessages, newMessage],
-      isAIAnalyzing: true
-    };
-  }),
-  addAIMessage: (text) => set((state) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'ai',
-      text,
-      timestamp: new Date()
-    };
-    return { 
-      chatMessages: [...state.chatMessages, newMessage],
-      isAIAnalyzing: false
-    };
-  }),
+  addUserMessage: (text) => { // This is the combined and corrected function
+    // Add user message and set analyzing state immediately
+    set((state) => ({
+      chatMessages: [
+        ...state.chatMessages,
+        {
+          id: Date.now().toString(),
+          sender: 'user' as 'user', // Type assertion
+          text,
+          timestamp: new Date(),
+        },
+      ],
+      isAIAnalyzing: true,
+    }));
+
+    // Perform AI call
+    // Use get() to access the latest state within this async operation
+    const currentMessages = get().chatMessages;
+    const currentChartData = get().chartData;
+
+    getAIResponse(currentMessages, currentChartData)
+      .then((aiResponseText) => {
+        set((state) => ({
+          chatMessages: [
+            ...state.chatMessages,
+            {
+              id: Date.now().toString() + '-ai',
+              sender: 'ai' as 'ai', // Type assertion
+              text: aiResponseText,
+              timestamp: new Date(),
+            },
+          ],
+          isAIAnalyzing: false,
+        }));
+      })
+      .catch((error) => {
+        console.error("Error getting AI response:", error);
+        set((state) => ({
+          chatMessages: [
+            ...state.chatMessages,
+            {
+              id: Date.now().toString() + '-error',
+              sender: 'ai' as 'ai', // Type assertion
+              text: "Sorry, I encountered an error. Please try again.",
+              timestamp: new Date(),
+            },
+          ],
+          isAIAnalyzing: false,
+        }));
+      });
+  },
+  // addAIMessage is no longer needed as its logic is merged into addUserMessage
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
   showDrawingSettings: false,
