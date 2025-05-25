@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, RefObject } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import type { DrawingPoint, DrawingObject } from '@/store/chartStore';
@@ -60,7 +61,7 @@ export const useDrawingTools = ({ svgRef, startTextAnnotation }: UseDrawingTools
     } else if (activeTool === 'text') {
       // Call the callback to start text annotation, provided by useTextAnnotation hook via Chart.tsx
       startTextAnnotation(point);
-    } else if (activeTool === 'trendline' || activeTool === 'rectangle') {
+    } else if (activeTool === 'trendline' || activeTool === 'rectangle' || activeTool === 'fibonacci') {
       setIsDrawing(true);
       setStartPoint(point);
       setCurrentEndPoint(point);
@@ -69,7 +70,7 @@ export const useDrawingTools = ({ svgRef, startTextAnnotation }: UseDrawingTools
   }, [activeTool, drawings, setSelectedDrawingId, svgRef, currentDrawingSettings.lineWidth, startTextAnnotation]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing || (activeTool !== 'trendline' && activeTool !== 'rectangle')) return;
+    if (!isDrawing || (activeTool !== 'trendline' && activeTool !== 'rectangle' && activeTool !== 'fibonacci')) return;
     if (!svgRef.current) return;
 
     const svgRect = svgRef.current.getBoundingClientRect();
@@ -80,7 +81,7 @@ export const useDrawingTools = ({ svgRef, startTextAnnotation }: UseDrawingTools
   }, [isDrawing, activeTool, svgRef]);
 
   const handleMouseUp = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing || !startPoint || !currentEndPoint || (activeTool !== 'trendline' && activeTool !== 'rectangle')) {
+    if (!isDrawing || !startPoint || !currentEndPoint || (activeTool !== 'trendline' && activeTool !== 'rectangle' && activeTool !== 'fibonacci')) {
       return;
     }
     
@@ -105,6 +106,15 @@ export const useDrawingTools = ({ svgRef, startTextAnnotation }: UseDrawingTools
       newDrawingObject = {
         id: uuidv4(),
         type: 'rectangle',
+        points: [startPoint, currentEndPoint], // Use currentEndPoint from state
+        color: currentDrawingSettings.color,
+        lineStyle: currentDrawingSettings.lineStyle,
+        lineWidth: currentDrawingSettings.lineWidth,
+      };
+    } else if (activeTool === 'fibonacci') {
+      newDrawingObject = {
+        id: uuidv4(),
+        type: 'fibonacci',
         points: [startPoint, currentEndPoint], // Use currentEndPoint from state
         color: currentDrawingSettings.color,
         lineStyle: currentDrawingSettings.lineStyle,

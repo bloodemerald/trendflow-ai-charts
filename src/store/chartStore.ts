@@ -27,7 +27,7 @@ export interface DrawingPoint {
   y: number;
 }
 
-export type DrawingObjectType = 'trendline' | 'rectangle' | 'text';
+export type DrawingObjectType = 'trendline' | 'rectangle' | 'text' | 'fibonacci';
 
 export type LineStyle = 'solid' | 'dashed' | 'dotted';
 

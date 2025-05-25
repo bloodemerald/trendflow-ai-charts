@@ -336,6 +336,52 @@ const Chart = () => {
                     />
                   </g>
                 );
+              } else if (drawing.type === 'fibonacci' && drawing.points.length === 2) {
+                const [p1, p2] = drawing.points;
+                const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+                const height = p2.y - p1.y;
+                const width = p2.x - p1.x;
+                
+                return (
+                  <g key={drawing.id} onClick={(e) => {
+                    if (activeTool === 'cursor') {
+                      e.stopPropagation();
+                      setSelectedDrawingId(drawing.id);
+                    }
+                  }}>
+                    {fibLevels.map((level, index) => {
+                      const y = p1.y + (height * level);
+                      const x1 = Math.min(p1.x, p2.x);
+                      const x2 = Math.max(p1.x, p2.x);
+                      const levelColor = index === 0 || index === fibLevels.length - 1 ? drawing.color : hexToRgba(drawing.color, 0.7);
+                      
+                      return (
+                        <g key={`fib-${index}`}>
+                          <line
+                            x1={x1} y1={y} x2={x2} y2={y}
+                            stroke={isSelected ? selectionColor : levelColor}
+                            strokeWidth={selectedStrokeWidth}
+                            strokeDasharray={index === 0 || index === fibLevels.length - 1 ? "none" : "3,3"}
+                            className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
+                          />
+                          <text
+                            x={x2 + 5} y={y + 4}
+                            fill={isSelected ? selectionColor : drawing.color}
+                            fontSize="10" textAnchor="start"
+                          >
+                            {(level * 100).toFixed(1)}%
+                          </text>
+                        </g>
+                      );
+                    })}
+                    {isSelected && (
+                      <>
+                        <circle cx={p1.x} cy={p1.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                        <circle cx={p2.x} cy={p2.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                      </>
+                    )}
+                  </g>
+                );
               } else if (drawing.type === 'text' && drawing.points.length > 0 && drawing.text) {
                 const p1 = drawing.points[0];
                 const fontSize = 8 + drawing.lineWidth * 2;
@@ -394,6 +440,34 @@ const Chart = () => {
                     fill={hexToRgba(currentDrawingSettings.color, 0.2)}
                     opacity={0.7}
                   />
+                )}
+                {activeTool === 'fibonacci' && (
+                  <g opacity={0.7}>
+                    {[0, 0.236, 0.382, 0.5, 0.618, 0.786, 1].map((level, index) => {
+                      const height = currentEndPoint.y - startPoint.y;
+                      const y = startPoint.y + (height * level);
+                      const x1 = Math.min(startPoint.x, currentEndPoint.x);
+                      const x2 = Math.max(startPoint.x, currentEndPoint.x);
+                      
+                      return (
+                        <g key={`preview-fib-${index}`}>
+                          <line
+                            x1={x1} y1={y} x2={x2} y2={y}
+                            stroke={currentDrawingSettings.color}
+                            strokeWidth={currentDrawingSettings.lineWidth}
+                            strokeDasharray={index === 0 || index === 6 ? "none" : "3,3"}
+                          />
+                          <text
+                            x={x2 + 5} y={y + 4}
+                            fill={currentDrawingSettings.color}
+                            fontSize="10" textAnchor="start"
+                          >
+                            {(level * 100).toFixed(1)}%
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
                 )}
               </>
             )}
