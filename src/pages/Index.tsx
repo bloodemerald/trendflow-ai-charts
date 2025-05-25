@@ -29,22 +29,22 @@ const Index = () => {
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
       
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <LeftSidebar />
         
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Chart container - fixed height to ensure panels are visible */}
-          <div className="flex-1 p-4 min-h-0 max-h-[calc(100vh-200px)]">
+        <main className="flex-1 flex flex-col min-h-0">
+          {/* Chart container - takes remaining space */}
+          <div className="flex-1 p-4 min-h-0 overflow-hidden">
             <Chart />
           </div>
           
-          {/* Bottom panels - fixed height with scroll if needed */}
-          <div className="h-48 p-4 border-t border-chart-grid bg-card/50 overflow-y-auto flex-shrink-0">
+          {/* Bottom panels - always visible with fixed height */}
+          <div className="h-52 p-4 border-t border-chart-grid bg-card/50 flex-shrink-0">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
               {/* Market Summary Panel */}
-              <div className="bg-card p-3 rounded-lg border border-chart-grid shadow-sm h-fit">
-                <h3 className="text-sm font-semibold mb-2 text-foreground">Market Summary</h3>
-                <div className="space-y-1 text-xs">
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Market Summary</h3>
+                <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Open</span>
                     <span className="font-medium text-foreground">${formatPrice(marketSummary.open)}</span>
@@ -75,9 +75,9 @@ const Index = () => {
               </div>
               
               {/* Technical Indicators Panel */}
-              <div className="bg-card p-3 rounded-lg border border-chart-grid shadow-sm h-fit">
-                <h3 className="text-sm font-semibold mb-2 text-foreground">Technical Indicators</h3>
-                <div className="space-y-1 text-xs">
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Technical Indicators</h3>
+                <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">RSI (14)</span>
                     <span className="font-medium text-foreground">
@@ -108,8 +108,8 @@ const Index = () => {
               </div>
               
               {/* Recent Signals Panel */}
-              <div className="bg-card p-3 rounded-lg border border-chart-grid shadow-sm h-fit">
-                <h3 className="text-sm font-semibold mb-2 text-foreground">Recent Signals</h3>
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
+                <h3 className="text-sm font-semibold mb-3 text-foreground">Recent Signals</h3>
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center">
                     <div className={`w-2 h-2 rounded-full ${marketSummary.change >= 0 ? 'bg-chart-green' : 'bg-chart-red'} mr-2 flex-shrink-0`}></div>
