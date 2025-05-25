@@ -5,96 +5,106 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%; /* Dark blue background */
-    --foreground: 210 40% 98%;
+    /* Apple-style Light Theme */
+    --background: 0 0% 97%; /* Off-white/Light gray background */
+    --foreground: 0 0% 10%; /* Dark gray for text */
 
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 0 0% 10%;
 
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 217.2 91.2% 59.8%; /* Bright blue */
-    --primary-foreground: 210 40% 98%;
+    --primary: 210 100% 50%; /* Apple blue */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 93%; /* Lighter gray for secondary elements */
+    --secondary-foreground: 0 0% 20%; /* Darker gray text for secondary */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 90%; /* Very light gray for muted elements */
+    --muted-foreground: 0 0% 40%; /* Medium gray for muted text */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 210 100% 50%; /* Apple blue for accent */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%; /* Standard red */
+    --destructive-foreground: 0 0% 100%; /* White text on destructive */
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 0 0% 85%; /* Light gray for borders */
+    --input: 0 0% 92%; /* Slightly lighter gray for input backgrounds */
+    --ring: 210 100% 50%; /* Apple blue for focus rings */
 
-    --radius: 0.5rem;
+    --radius: 0.5rem; /* Keep existing radius */
 
-    --sidebar-background: 223 47% 14%; /* Dark blue sidebar */
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 223 38% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 223 38% 22%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar specific colors for light theme */
+    --sidebar-background: 0 0% 95%; /* Slightly darker light gray for sidebar */
+    --sidebar-foreground: 0 0% 10%; /* Dark gray text */
+    --sidebar-primary: 210 100% 50%; /* Apple blue for active/primary items */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text on sidebar primary */
+    --sidebar-accent: 0 0% 88%; /* Lighter gray for hover/accent on sidebar */
+    --sidebar-accent-foreground: 0 0% 10%; /* Dark text on sidebar accent */
+    --sidebar-border: 0 0% 80%; /* Slightly darker border for sidebar */
+    --sidebar-ring: 210 100% 50%; /* Apple blue for focus rings within sidebar */
   }
+
+  /* Dark mode will inherit from :root if not overridden, effectively making light mode default */
+  /* For this task, we are not defining a separate .dark theme, so :root is the only theme. */
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border; /* Uses the new --border color */
   }
 
   body {
-    @apply bg-chart-bg text-chart-text;
+    @apply bg-background text-foreground; /* Updated to use general background and foreground */
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Custom scrollbar for the trading platform */
+  /* Custom scrollbar for light theme */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #1E2434;
+    background: hsl(var(--background)); /* Light track */
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #2A2F45;
+    background: hsl(0 0% 80%); /* Medium gray thumb */
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3A4157;
+    background: hsl(0 0% 70%); /* Darker gray thumb on hover */
   }
 }
 
 @layer components {
   .chart-container {
-    @apply relative w-full h-[500px] bg-chart-bg border border-chart-grid rounded-md overflow-hidden;
+    /* Will be styled by tailwind.config.ts `chart-bg` and `chart-grid` */
+    @apply relative w-full h-[500px] bg-card border border-border rounded-md overflow-hidden;
   }
 
   .tool-button {
+    /* Uses new sidebar accent for hover */
     @apply flex items-center justify-center w-8 h-8 rounded hover:bg-sidebar-accent transition-colors;
   }
   
   .tool-button.active {
+    /* Primary color with opacity for active state */
     @apply bg-primary/20 text-primary;
   }
   
   .timeframe-button {
-    @apply px-2 py-1 text-xs rounded hover:bg-chart-grid transition-colors;
+    /* Uses new muted for hover, or could be secondary */
+    @apply px-2 py-1 text-xs rounded hover:bg-muted transition-colors;
   }
   
   .timeframe-button.active {
-    @apply bg-primary text-white;
+    /* Uses new primary and primary-foreground */
+    @apply bg-primary text-primary-foreground;
   }
 
   .message-bubble {
@@ -102,10 +112,12 @@
   }
   
   .message-user {
-    @apply bg-primary/20 text-chart-text self-end;
+    /* Primary color with opacity, text color from --foreground (via body) */
+    @apply bg-primary/20 text-foreground self-end;
   }
   
   .message-ai {
-    @apply bg-chart-grid text-chart-text self-start;
+    /* Uses new secondary for AI message background */
+    @apply bg-secondary text-secondary-foreground self-start;
   }
 }

@@ -29,15 +29,15 @@ const RightSidebar = () => {
   };
 
   return (
-    <div className="w-80 h-full bg-sidebar border-l border-chart-grid flex flex-col">
-      <div className="p-3 border-b border-chart-grid flex items-center">
+    <div className="w-80 h-full bg-sidebar border-l border-border flex flex-col"> {/* Updated border */}
+      <div className="p-3 border-b border-border flex items-center"> {/* Updated border */}
         <h2 className="text-sm font-medium flex-1">AI Assistant</h2>
-        <button className="w-6 h-6 flex items-center justify-center">
+        <Button variant="ghost" size="icon" className="w-6 h-6"> {/* Styled button */}
           <ChevronLeft size={16} />
-        </button>
+        </Button>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4"> {/* Custom scrollbar from index.css will apply */}
         {chatMessages.map((message) => (
           <div 
             key={message.id} 
@@ -63,12 +63,12 @@ const RightSidebar = () => {
         <div ref={messagesEndRef} data-testid="messages-end" />
       </div>
       
-      <div className="p-3 border-t border-chart-grid">
+      <div className="p-3 border-t border-border"> {/* Updated border */}
         <form onSubmit={handleSubmit} className="flex">
           <Input
             type="text"
             placeholder="Ask about the chart..."
-            className="flex-1 bg-secondary"
+            className="flex-1" /* Removed bg-secondary to use default input style (bg-card) */
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             disabled={isAIAnalyzing}

@@ -80,6 +80,12 @@ interface ChartState {
   zoomOut: () => void;
   resetZoom: () => void;
   // --- END Zoom-related state ---
+  // --- BEGIN X-axis Zoom-related state ---
+  xZoomLevel: number;
+  xPanOffset: number;
+  setXZoomLevel: (level: number) => void;
+  panXAxis: (delta: number) => void;
+  // --- END X-axis Zoom-related state ---
   marketSummary: {
     open: number;
     high: number;
@@ -247,6 +253,51 @@ export const useChartStore = create<ChartState>((set, get) => ({
   zoomOut: () => set((state) => ({ zoomLevel: Math.max(0.5, state.zoomLevel / 1.2) })),
   resetZoom: () => set({ zoomLevel: 1 }),
   // --- END Zoom-related state initialization ---
+  // --- BEGIN X-axis Zoom-related state initialization ---
+  xZoomLevel: 1, // Default to 1 (all data visible)
+  xPanOffset: 0, // Default to 0 (start from the beginning)
+  setXZoomLevel: (level) => set((state) => {
+    const { chartData, xZoomLevel: currentXZoomLevel, xPanOffset: currentXPanOffset } = state;
+    const totalDataPoints = chartData.length;
+    const MIN_VIEWABLE_POINTS = 10;
+
+    const minZoomLevel = 1; // Cannot zoom out further than seeing all data
+    const maxZoomLevel = totalDataPoints > MIN_VIEWABLE_POINTS ? totalDataPoints / MIN_VIEWABLE_POINTS : 1;
+    
+    const newXZoomLevel = Math.max(minZoomLevel, Math.min(level, maxZoomLevel));
+
+    if (newXZoomLevel === currentXZoomLevel) return {}; // No change
+
+    // Try to keep the center of the view consistent
+    const oldVisiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / currentXZoomLevel));
+    const oldCenterIndexOffset = currentXPanOffset + oldVisiblePoints / 2;
+    
+    const newVisiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / newXZoomLevel));
+    let newXPanOffset = Math.round(oldCenterIndexOffset - newVisiblePoints / 2);
+    
+    // Clamp newXPanOffset
+    const maxPanOffset = Math.max(0, totalDataPoints - newVisiblePoints);
+    newXPanOffset = Math.max(0, Math.min(newXPanOffset, maxPanOffset));
+    
+    return { xZoomLevel: newXZoomLevel, xPanOffset: newXPanOffset };
+  }),
+  panXAxis: (delta) => set((state) => {
+    const { chartData, xZoomLevel, xPanOffset } = state;
+    const totalDataPoints = chartData.length;
+    const MIN_VIEWABLE_POINTS = 10;
+    const visiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / xZoomLevel));
+    
+    let newXPanOffset = xPanOffset + delta;
+    
+    // Clamp newXPanOffset
+    const maxPanOffset = Math.max(0, totalDataPoints - visiblePoints);
+    newXPanOffset = Math.max(0, Math.min(newXPanOffset, maxPanOffset));
+    
+    if (newXPanOffset === xPanOffset) return {}; // No change
+    
+    return { xPanOffset: newXPanOffset };
+  }),
+  // --- END X-axis Zoom-related state initialization ---
   marketSummary: {
     open: 0,
     high: 0,

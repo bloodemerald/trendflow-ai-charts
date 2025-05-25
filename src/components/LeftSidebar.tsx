@@ -39,7 +39,7 @@ const LeftSidebar = () => {
   
   return (
     <div className="flex h-full">
-      <div className="w-12 bg-sidebar py-4 flex flex-col items-center border-r border-chart-grid">
+      <div className="w-12 bg-sidebar py-4 flex flex-col items-center border-r border-border"> {/* Updated border */}
         {tools.map((tool) => (
           <div key={tool.id} className="relative group mb-4">
             <button
@@ -73,7 +73,7 @@ const LeftSidebar = () => {
       </div>
       
       {showDrawingSettings && (
-        <div className="w-48 bg-sidebar border-r border-chart-grid p-3">
+        <div className="w-48 bg-sidebar border-r border-border p-3"> {/* Updated border */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium">Drawing Settings</h3>
             <button onClick={() => setShowDrawingSettings(false)}>
@@ -113,7 +113,7 @@ const LeftSidebar = () => {
                   return (
                     <button
                       key={style}
-                      className={`w-7 h-7 flex items-center justify-center border rounded ${isActive ? 'border-ring bg-gray-700' : 'border-chart-grid'} hover:border-gray-400`}
+                      className={`w-7 h-7 flex items-center justify-center border rounded ${isActive ? 'border-ring bg-secondary' : 'border-border'} hover:border-gray-400`} {/* Updated active bg and default border */}
                       onClick={() => {
                         if (selectedDrawingId && selectedDrawing) {
                           updateDrawingProperties(selectedDrawingId, { lineStyle: style as any });
@@ -148,7 +148,7 @@ const LeftSidebar = () => {
                     updateDrawingSetting('lineWidth', newWidth);
                   }
                 }}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-sm accent-primary"
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer range-sm accent-primary" /* Updated track background */
               />
             </div>
             

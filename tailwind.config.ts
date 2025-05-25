@@ -11,6 +11,23 @@ export default {
 	],
 	prefix: "",
 	theme: {
+    fontFamily: {
+      sans: [
+        'system-ui',
+        '-apple-system',
+        'BlinkMacSystemFont',
+        '"Segoe UI"',
+        'Roboto',
+        '"Helvetica Neue"',
+        'Arial',
+        '"Noto Sans"',
+        'sans-serif',
+        '"Apple Color Emoji"',
+        '"Segoe UI Emoji"',
+        '"Segoe UI Symbol"',
+        '"Noto Color Emoji"',
+      ],
+    },
 		container: {
 			center: true,
 			padding: '2rem',
@@ -64,17 +81,17 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				chart: {
-					bg: '#121826',
-					grid: '#1E2434',
-					green: '#4CAF50',
-					red: '#FF5252',
-					yellow: '#FFD54F',
-					blue: '#2196F3',
-					purple: '#9C27B0',
-					line: '#5C6BC0',
-					text: '#E0E0E0',
-					tooltip: '#2A2F45',
-					selection: 'rgba(33, 150, 243, 0.2)'
+					bg: 'hsl(0 0% 100%)', // White background for chart, matches --card
+					grid: 'hsl(0 0% 90%)', // Light gray grid lines
+					green: '#4CAF50', // Standard green for price up
+					red: '#FF5252', // Standard red for price down
+					yellow: 'hsl(45 90% 50%)', // Vibrant yellow for indicators
+					blue: 'hsl(210 100% 50%)', // Apple blue for indicators, matches --primary
+					purple: 'hsl(270 70% 55%)', // Vibrant purple for indicators
+					line: 'hsl(0 0% 50%)', // Neutral gray for general lines like SMA
+					text: 'hsl(0 0% 10%)', // Dark gray text, matches --foreground
+					tooltip: 'hsl(0 0% 100%)', // White tooltip background, matches --popover
+					selection: 'rgba(0, 119, 255, 0.2)' // Apple blue with opacity, from hsl(210 100% 50%)
 				}
 			},
 			borderRadius: {
