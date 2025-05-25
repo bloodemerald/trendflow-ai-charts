@@ -32,7 +32,13 @@ const Chart = () => {
   const setSelectedDrawingId = useChartStore(state => state.setSelectedDrawingId);
   const drawings = useChartStore(state => state.drawings);
   const currentDrawingSettings = useChartStore(state => state.currentDrawingSettings);
-  const zoomLevel = useChartStore(state => state.zoomLevel);
+  const zoomLevel = useChartStore(state => state.zoomLevel); // Vertical zoom
+  const zoomIn = useChartStore(state => state.zoomIn); // Vertical zoom in
+  const zoomOut = useChartStore(state => state.zoomOut); // Vertical zoom out
+  const xZoomLevel = useChartStore(state => state.xZoomLevel); // Horizontal zoom
+  const xPanOffset = useChartStore(state => state.xPanOffset); // Horizontal pan
+  const setXZoomLevel = useChartStore(state => state.setXZoomLevel); // Action for horizontal zoom
+  const panXAxis = useChartStore(state => state.panXAxis); // Action for horizontal panning
 
   // Data fetching hook
   const { 
@@ -172,6 +178,99 @@ const Chart = () => {
     };
   }, []); 
 
+  // Vertical Zoom with Ctrl + Mouse Wheel, Horizontal Zoom with Ctrl + Shift + Mouse Wheel, Pan with Ctrl + Horizontal Scroll
+  useEffect(() => {
+    const svgElement = svgRef.current;
+    if (!svgElement) return;
+
+    const PAN_SPEED = 2; // Number of data points to shift per pan event
+
+    const handleWheelInteraction = (event: WheelEvent) => {
+      if (event.ctrlKey) {
+        event.preventDefault(); // Prevent default page scroll when Ctrl is pressed
+
+        if (event.shiftKey) {
+          // Horizontal Zoom (Ctrl + Shift + Vertical Scroll)
+          const currentXZoom = useChartStore.getState().xZoomLevel;
+          if (event.deltaY < 0) {
+            setXZoomLevel(currentXZoom * 1.2);
+          } else {
+            setXZoomLevel(currentXZoom / 1.2);
+          }
+        } else {
+          // Check for horizontal scroll for panning vs. vertical scroll for zooming
+          // Prioritize deltaX if it's significantly larger than deltaY, or if deltaY is near zero
+          const hasSignificantDeltaX = Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 0.5;
+          const hasAnyDeltaX = Math.abs(event.deltaX) > 0.5; // Threshold to consider deltaX active
+          const hasAnyDeltaY = Math.abs(event.deltaY) > 0.5; // Threshold to consider deltaY active
+
+          if (hasAnyDeltaX && !hasAnyDeltaY) { // Only horizontal scroll
+            panXAxis(event.deltaX > 0 ? PAN_SPEED : -PAN_SPEED);
+          } else if (hasSignificantDeltaX) { // Prefer horizontal pan if deltaX is dominant
+            panXAxis(event.deltaX > 0 ? PAN_SPEED : -PAN_SPEED);
+          } else if (hasAnyDeltaY) { // Otherwise, if deltaY is present, do vertical zoom
+            if (event.deltaY < 0) {
+              zoomIn();
+            } else {
+              zoomOut();
+            }
+          }
+          // If neither deltaX nor deltaY are significant, nothing happens (e.g. very slight touch)
+        }
+      }
+      // If Ctrl is not pressed, default wheel behavior (page scrolling) occurs.
+    };
+
+    svgElement.addEventListener('wheel', handleWheelInteraction, { passive: false });
+
+    return () => {
+      svgElement.removeEventListener('wheel', handleWheelInteraction);
+    };
+  }, [svgRef, zoomIn, zoomOut, setXZoomLevel, panXAxis]); // Include panXAxis
+
+
+  // Calculate visible data based on xZoomLevel and xPanOffset
+  const MIN_VIEWABLE_POINTS = 10;
+  const totalDataPoints = processedData?.length || 0;
+  
+  let visibleData = processedData;
+  let currentStartIndex = xPanOffset;
+
+  if (totalDataPoints > 0) {
+    const pointsToShow = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / xZoomLevel));
+    currentStartIndex = Math.max(0, Math.min(xPanOffset, totalDataPoints - pointsToShow));
+    const endIndex = Math.min(totalDataPoints, currentStartIndex + pointsToShow);
+    visibleData = processedData.slice(currentStartIndex, endIndex);
+  }
+
+
+  // Calculate price range for Y-axis scaling with zoom (using full processedData for stable Y-axis unless visibleData is preferred)
+  // For now, Y-axis will scale based on the min/max of the entire processedData, not just visibleData.
+  // This behavior can be changed if dynamic Y-scaling based on visible X-range is desired.
+  const yAxisMinPrice = processedData && processedData.length > 0 ? Math.min(...processedData.map(d => d.low ?? 0)) : 0;
+  const yAxisMaxPrice = processedData && processedData.length > 0 ? Math.max(...processedData.map(d => d.high ?? 0)) : 100;
+  const yRange = yAxisMaxPrice - yAxisMinPrice;
+  const yZoomedRange = yRange / zoomLevel; // zoomLevel is vertical zoom
+  const yCenterPrice = (yAxisMaxPrice + yAxisMinPrice) / 2;
+  const yPaddedMin = yCenterPrice - (yZoomedRange * 0.55);
+  const yPaddedMax = yCenterPrice + (yZoomedRange * 0.55);
+  const yPaddedRange = yPaddedMax - yPaddedMin;
+
+  // Y-axis scaling function (updated to use new min/max variables)
+  const yScale = (val: number) => {
+    if (yPaddedRange === 0) return chartDimensions.height * 0.85 * 0.5; // Center if no range (main chart area is 85% height)
+    // Assuming price chart area is top 85% of SVG, volume is bottom 15% (excluding margins)
+    // Let's refine this: main chart area height is roughly chartDimensions.height - volumeChartHeight - xAxisLabelHeight
+    // For simplicity, let's assume main chart rendering area is fixed for now.
+    // The existing yScale was: return 310 - ((val - paddedMin) / paddedRange * 280);
+    // Let's assume chart plot area height is chartDimensions.height * 0.7 (example)
+    // And it starts from, say, chartDimensions.height * 0.1
+    const plotHeight = chartDimensions.height * 0.70; // Main candlestick chart area
+    const plotTopMargin = chartDimensions.height * 0.05; // Top margin for price axis labels etc.
+    return plotTopMargin + plotHeight - (((val - yPaddedMin) / yPaddedRange) * plotHeight);
+  };
+
+
   return (
     <div className="relative h-full flex flex-col">
       {error && (
@@ -223,17 +322,51 @@ const Chart = () => {
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
             
-            {processedData && processedData.length > 0 && processedData.map((entry, index) => {
-              const xPos = 40 + (index * ((chartDimensions.width - 60) / processedData.length)); 
-              const slotWidth = ((chartDimensions.width - 60) / processedData.length) * zoomLevel;
+            {/* X-Axis Labels - Custom rendering based on visibleData */}
+            {visibleData && visibleData.length > 0 && chartDimensions.width > 0 && [...Array(Math.min(10, visibleData.length))].map((_, i) => {
+              const dataIndex = Math.floor(i * (visibleData.length / Math.min(10, visibleData.length)));
+              const entry = visibleData[dataIndex];
+              if (!entry) return null;
+              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
+              const X_AXIS_MARGIN_LEFT = 50; // Increased margin for Y-axis labels
+              const X_AXIS_MARGIN_RIGHT = 60; // Increased margin for price scale
+              const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
+              const x = X_AXIS_MARGIN_LEFT + (dataIndex * (plotAreaWidth / visibleData.length)) + (plotAreaWidth / visibleData.length / 2) ;
+              
+              return (
+                <text
+                  key={`x-label-${i}`}
+                  x={x}
+                  y={chartDimensions.height - 35} // Position above volume chart, adjust as needed
+                  fontSize="10" textAnchor="middle"
+                  fill="rgba(255,255,255,0.7)" fontFamily="monospace"
+                >
+                  {formatDate(entry.timestamp, timeFrame)}
+                </text>
+              );
+            })}
+
+            {visibleData && visibleData.length > 0 && visibleData.map((entry, index) => {
+              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
+              const X_AXIS_MARGIN_LEFT = 50;
+              const X_AXIS_MARGIN_RIGHT = 60;
+              const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
+              const slotWidth = plotAreaWidth / visibleData.length;
+              // xPos is the left edge of the slot
+              const xPos = X_AXIS_MARGIN_LEFT + (index * slotWidth); 
+              
+              // Original slotWidth calculation was problematic:
+              // const slotWidth = ((chartDimensions.width - 60) / processedData.length) * zoomLevel;
+              // Corrected slotWidth based on visibleData and available plot area.
+              // zoomLevel (vertical) should not affect horizontal slotWidth.
 
               return (
                 <CustomCandlestick
-                  key={`candle-${index}`}
-                  index={index}
-                  x={xPos}
-                  y={yScale}
-                  width={slotWidth}
+                  key={`candle-${currentStartIndex + index}`}
+                  index={currentStartIndex + index} // Pass original index if needed by other parts
+                  x={xPos + slotWidth * 0.1} // Add small padding from left
+                  y={yScale} // yScale already handles mapping price to y-coordinate
+                  width={slotWidth * 0.8} // Reduce width for spacing between candles
                   open={entry.open}
                   close={entry.close}
                   high={entry.high}
@@ -242,37 +375,50 @@ const Chart = () => {
               );
             })}
             
-            {indicators.includes('sma') && processedData && processedData.length > 0 && processedData.map((entry, index) => {
-              if (!entry.sma || index === 0) return null;
-              const prevEntry = processedData[index - 1];
+            
+            {indicators.includes('sma') && visibleData && visibleData.length > 0 && visibleData.map((entry, index) => {
+              if (!entry.sma || index === 0) return null; // Still need to check original index if SMA calculated on processedData
+              
+              const prevEntryOriginalIndex = currentStartIndex + index -1;
+              // Ensure prevEntry is from the original processedData to get its SMA value
+              const prevEntry = prevEntryOriginalIndex >= 0 ? processedData[prevEntryOriginalIndex] : null;
+
               if (!prevEntry || !prevEntry.sma) return null; 
               
-              const x1 = 40 + ((index - 1) * ((chartDimensions.width - 60) / processedData.length)) + ((chartDimensions.width - 60) / processedData.length) / 2;
-              const x2 = 40 + (index * ((chartDimensions.width - 60) / processedData.length)) + ((chartDimensions.width - 60) / processedData.length) / 2;
+              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
+              const X_AXIS_MARGIN_LEFT = 50;
+              const X_AXIS_MARGIN_RIGHT = 60;
+              const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
+              const slotWidth = plotAreaWidth / visibleData.length;
+
+              const x1 = X_AXIS_MARGIN_LEFT + ((index - 1) * slotWidth) + slotWidth / 2;
+              const x2 = X_AXIS_MARGIN_LEFT + (index * slotWidth) + slotWidth / 2;
               const y1 = yScale(prevEntry.sma);
               const y2 = yScale(entry.sma);
               
               return (
                 <line
-                  key={`sma-${index}`}
+                  key={`sma-${currentStartIndex + index}`}
                   x1={x1} y1={y1} x2={x2} y2={y2}
                   stroke="#9C27B0" strokeWidth={1.5}
                 />
               );
             })}
             
+            {/* Y-Axis Labels - Right Side */}
             {[...Array(6)].map((_, i) => {
-              const price = paddedMin + (paddedRange / 5 * i);
+              const price = yPaddedMin + (yPaddedRange / 5 * i);
               const y = yScale(price);
+              const X_AXIS_MARGIN_RIGHT = 60; // Match definition
               return (
                 <g key={`price-axis-${i}`}>
                   <line
-                    x1={chartDimensions.width - 50} y1={y}
-                    x2={chartDimensions.width - 45} y2={y}
+                    x1={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 5} y1={y} // Adjusted position
+                    x2={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 10} y2={y} // Adjusted position
                     stroke="rgba(255,255,255,0.3)" strokeWidth={1}
                   />
                   <text
-                    x={chartDimensions.width - 40} y={y + 4}
+                    x={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 15} y={y + 4} // Adjusted position
                     fontSize="10" textAnchor="start"
                     fill="rgba(255,255,255,0.7)" fontFamily="monospace"
                   >
@@ -281,141 +427,185 @@ const Chart = () => {
                 </g>
               );
             })}
+            
+            {(() => {
+              // Transformation logic setup
+              const X_AXIS_MARGIN_LEFT = 50;
+              const X_AXIS_MARGIN_RIGHT = 60;
+              const currentPlotAreaWidth = chartDimensions.width > (X_AXIS_MARGIN_LEFT + X_AXIS_MARGIN_RIGHT) ? chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT : 0;
 
-            {drawings.map(drawing => {
-              const isSelected = drawing.id === selectedDrawingId;
-              const baseStrokeWidth = drawing.lineWidth;
-              const selectedStrokeWidth = baseStrokeWidth + (isSelected ? 2 : 0);
-              const selectionColor = "rgba(0, 150, 255, 0.8)"; 
+              // Original Y-scale parameters (assuming zoomLevel = 1 at drawing time)
+              const Y_SCALE_PLOT_TOP = 30; // Based on current yScale: 310 - 280
+              const Y_SCALE_PLOT_HEIGHT = 280; // Based on current yScale
+              const originalVerticalZoomLevel = 1;
+              const dataMinPrice = minPrice; // minPrice & maxPrice are from full processedData
+              const dataMaxPrice = maxPrice;
+              const originalPriceRange = dataMaxPrice - dataMinPrice;
+              const originalZoomedPriceRange = originalPriceRange / originalVerticalZoomLevel;
+              const originalCenterPrice = (dataMaxPrice + dataMinPrice) / 2;
+              const originalPaddedMinPrice = originalCenterPrice - (originalZoomedPriceRange * 0.55);
+              const originalPaddedPriceRange = (originalCenterPrice + (originalZoomedPriceRange * 0.55)) - originalPaddedMinPrice;
 
-              if (drawing.type === 'trendline' && drawing.points.length === 2) {
-                const [p1, p2] = drawing.points;
-                return (
-                  <g key={drawing.id} onClick={(e) => { 
-                    if (activeTool === 'cursor') { 
-                      e.stopPropagation(); 
-                      setSelectedDrawingId(drawing.id); 
-                    }
-                  }}>
-                    <line
-                      x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                      stroke={drawing.color} strokeWidth={selectedStrokeWidth}
-                      strokeDasharray={getStrokeDashArray(drawing.lineStyle)}
-                      className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
-                    />
-                    {isSelected && (
-                      <>
-                        <circle cx={p1.x} cy={p1.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
-                        <circle cx={p2.x} cy={p2.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
-                      </>
-                    )}
-                  </g>
-                );
-              } else if (drawing.type === 'rectangle' && drawing.points.length === 2) {
-                const p1 = drawing.points[0];
-                const p2 = drawing.points[1];
-                const x = Math.min(p1.x, p2.x);
-                const y = Math.min(p1.y, p2.y);
-                const width = Math.abs(p1.x - p2.x);
-                const height = Math.abs(p1.y - p2.y);
-                return (
-                  <g key={drawing.id} onClick={(e) => {
-                     if (activeTool === 'cursor') {
-                       e.stopPropagation(); 
-                       setSelectedDrawingId(drawing.id);
-                     }
-                  }}>
-                    <rect
-                      x={x} y={y} width={width} height={height}
-                      stroke={isSelected ? selectionColor : drawing.color}
-                      strokeWidth={selectedStrokeWidth}
-                      strokeDasharray={getStrokeDashArray(drawing.lineStyle)}
-                      fill={hexToRgba(drawing.color, 0.2)}
-                      className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
-                    />
-                  </g>
-                );
-              } else if (drawing.type === 'fibonacci' && drawing.points.length === 2) {
-                const [p1, p2] = drawing.points;
-                const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
-                const height = p2.y - p1.y;
-                const width = p2.x - p1.x;
-                
-                return (
-                  <g key={drawing.id} onClick={(e) => {
-                    if (activeTool === 'cursor') {
-                      e.stopPropagation();
-                      setSelectedDrawingId(drawing.id);
-                    }
-                  }}>
-                    {fibLevels.map((level, index) => {
-                      const y = p1.y + (height * level);
-                      const x1 = Math.min(p1.x, p2.x);
-                      const x2 = Math.max(p1.x, p2.x);
-                      const levelColor = index === 0 || index === fibLevels.length - 1 ? drawing.color : hexToRgba(drawing.color, 0.7);
-                      
-                      return (
-                        <g key={`fib-${index}`}>
-                          <line
-                            x1={x1} y1={y} x2={x2} y2={y}
-                            stroke={isSelected ? selectionColor : levelColor}
-                            strokeWidth={selectedStrokeWidth}
-                            strokeDasharray={index === 0 || index === fibLevels.length - 1 ? "none" : "3,3"}
-                            className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
-                          />
-                          <text
-                            x={x2 + 5} y={y + 4}
-                            fill={isSelected ? selectionColor : drawing.color}
-                            fontSize="10" textAnchor="start"
-                          >
-                            {(level * 100).toFixed(1)}%
-                          </text>
-                        </g>
-                      );
-                    })}
-                    {isSelected && (
-                      <>
-                        <circle cx={p1.x} cy={p1.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
-                        <circle cx={p2.x} cy={p2.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
-                      </>
-                    )}
-                  </g>
-                );
-              } else if (drawing.type === 'text' && drawing.points.length > 0 && drawing.text) {
-                const p1 = drawing.points[0];
-                const fontSize = 8 + drawing.lineWidth * 2;
-                const estimatedTextWidth = drawing.text.length * (fontSize * 0.6); 
-                const estimatedTextHeight = fontSize;
-                return (
-                  <g key={drawing.id} onClick={(e) => {
-                    if (activeTool === 'cursor') {
-                      e.stopPropagation(); 
-                      setSelectedDrawingId(drawing.id);
-                    }
-                  }}>
-                    <text
-                      x={p1.x} y={p1.y} fill={drawing.color}
-                      fontSize={`${fontSize}px`} textAnchor="start"
-                      dominantBaseline="hanging"
-                      className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
-                    >
-                      {drawing.text}
-                    </text>
-                    {isSelected && (
-                      <rect
-                        x={p1.x - 2} y={p1.y - 2}
-                        width={estimatedTextWidth + 4} height={estimatedTextHeight + 4}
-                        stroke={selectionColor} strokeWidth="1"
-                        strokeDasharray="3,3" fill="none"
+              const screenYToPrice = (screenY: number): number => {
+                if (originalPaddedPriceRange === 0) return originalCenterPrice;
+                return originalPaddedMinPrice + (((Y_SCALE_PLOT_TOP + Y_SCALE_PLOT_HEIGHT - screenY) / Y_SCALE_PLOT_HEIGHT) * originalPaddedPriceRange);
+              };
+              
+              const priceToCurrentScreenY = yScale; // This is the existing yScale function
+
+              // Original X-scale parameters (assuming xZoomLevel = 1, xPanOffset = 0 at drawing time)
+              const originalTotalDataPoints = totalDataPoints; // totalDataPoints is from full processedData
+              const originalSlotWidth = originalTotalDataPoints > 0 && currentPlotAreaWidth > 0 ? currentPlotAreaWidth / originalTotalDataPoints : 0;
+
+              const screenXToOriginalDataIndex = (screenX: number): number => {
+                if (originalSlotWidth === 0) return 0;
+                const screenXRelativeToPlot = screenX - X_AXIS_MARGIN_LEFT;
+                return screenXRelativeToPlot / originalSlotWidth;
+              };
+
+              const currentSlotWidth = visibleData.length > 0 && currentPlotAreaWidth > 0 ? currentPlotAreaWidth / visibleData.length : 0;
+
+              const originalDataIndexToCurrentScreenX = (dataIndex: number): number => {
+                // Ensure plotAreaWidth and currentSlotWidth are positive to avoid issues with chartDimensions not ready
+                if (currentPlotAreaWidth <=0 || currentSlotWidth <= 0) {
+                   // If chart isn't ready, try to place it reasonably or hide, here returning left margin
+                  return X_AXIS_MARGIN_LEFT;
+                }
+                // Calculate X for the center of the slot
+                return X_AXIS_MARGIN_LEFT + (dataIndex - currentStartIndex) * currentSlotWidth + currentSlotWidth / 2;
+              };
+              
+              // Helper to transform a single drawing point
+              const transformPoint = (p: DrawingPoint): DrawingPoint => {
+                const originalDataIndex = screenXToOriginalDataIndex(p.x);
+                const priceValue = screenYToPrice(p.y);
+                return {
+                  x: originalDataIndexToCurrentScreenX(originalDataIndex),
+                  y: priceToCurrentScreenY(priceValue),
+                };
+              };
+
+              return drawings.map(drawing => {
+                const isSelected = drawing.id === selectedDrawingId;
+                const baseStrokeWidth = drawing.lineWidth;
+                const selectedStrokeWidth = baseStrokeWidth + (isSelected ? 2 : 0);
+                const selectionColor = "rgba(0, 150, 255, 0.8)";
+
+                if (drawing.points.length === 0) return null;
+
+                if (drawing.type === 'trendline' && drawing.points.length === 2) {
+                  const tp1 = transformPoint(drawing.points[0]);
+                  const tp2 = transformPoint(drawing.points[1]);
+                  return (
+                    <g key={drawing.id} onClick={(e) => { if (activeTool === 'cursor') { e.stopPropagation(); setSelectedDrawingId(drawing.id); } }}>
+                      <line
+                        x1={tp1.x} y1={tp1.y} x2={tp2.x} y2={tp2.y}
+                        stroke={drawing.color} strokeWidth={selectedStrokeWidth}
+                        strokeDasharray={getStrokeDashArray(drawing.lineStyle)}
+                        className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
                       />
-                    )}
-                  </g>
-                );
-              }
-              return null;
-            })}
+                      {isSelected && (
+                        <>
+                          <circle cx={tp1.x} cy={tp1.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                          <circle cx={tp2.x} cy={tp2.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                        </>
+                      )}
+                    </g>
+                  );
+                } else if (drawing.type === 'rectangle' && drawing.points.length === 2) {
+                  const tp1 = transformPoint(drawing.points[0]);
+                  const tp2 = transformPoint(drawing.points[1]);
+                  const x = Math.min(tp1.x, tp2.x);
+                  const y = Math.min(tp1.y, tp2.y);
+                  const width = Math.abs(tp1.x - tp2.x);
+                  const height = Math.abs(tp1.y - tp2.y);
+                  return (
+                    <g key={drawing.id} onClick={(e) => { if (activeTool === 'cursor') { e.stopPropagation(); setSelectedDrawingId(drawing.id); } }}>
+                      <rect
+                        x={x} y={y} width={width} height={height}
+                        stroke={isSelected ? selectionColor : drawing.color}
+                        strokeWidth={selectedStrokeWidth}
+                        strokeDasharray={getStrokeDashArray(drawing.lineStyle)}
+                        fill={hexToRgba(drawing.color, 0.2)}
+                        className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
+                      />
+                    </g>
+                  );
+                } else if (drawing.type === 'fibonacci' && drawing.points.length === 2) {
+                  const tp1 = transformPoint(drawing.points[0]);
+                  const tp2 = transformPoint(drawing.points[1]);
+                  const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+                  const transformedHeight = tp2.y - tp1.y; // Use transformed points for height/width
+                  // const transformedWidth = tp2.x - tp1.x; // Not directly used for horizontal line x1,x2
 
-            {isDrawing && startPoint && currentEndPoint && (
+                  return (
+                    <g key={drawing.id} onClick={(e) => { if (activeTool === 'cursor') { e.stopPropagation(); setSelectedDrawingId(drawing.id); } }}>
+                      {fibLevels.map((level, index) => {
+                        const y = tp1.y + (transformedHeight * level);
+                        // For horizontal lines, use min/max of transformed X coordinates of the base points
+                        const x1 = Math.min(tp1.x, tp2.x); 
+                        const x2 = Math.max(tp1.x, tp2.x);
+                        const levelColor = index === 0 || index === fibLevels.length - 1 ? drawing.color : hexToRgba(drawing.color, 0.7);
+                        
+                        return (
+                          <g key={`fib-${index}`}>
+                            <line
+                              x1={x1} y1={y} x2={x2} y2={y}
+                              stroke={isSelected ? selectionColor : levelColor}
+                              strokeWidth={selectedStrokeWidth}
+                              strokeDasharray={index === 0 || index === fibLevels.length - 1 ? "none" : "3,3"}
+                              className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
+                            />
+                            <text
+                              x={x2 + 5} y={y + 4}
+                              fill={isSelected ? selectionColor : drawing.color}
+                              fontSize="10" textAnchor="start"
+                            >
+                              {(level * 100).toFixed(1)}%
+                            </text>
+                          </g>
+                        );
+                      })}
+                      {isSelected && (
+                        <>
+                          <circle cx={tp1.x} cy={tp1.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                          <circle cx={tp2.x} cy={tp2.y} r="4" fill={selectionColor} stroke="white" strokeWidth="1" />
+                        </>
+                      )}
+                    </g>
+                  );
+                } else if (drawing.type === 'text' && drawing.points.length > 0 && drawing.text) {
+                  const tp1 = transformPoint(drawing.points[0]);
+                  // Font size and estimation remain screen-based as per current behavior
+                  const fontSize = 8 + drawing.lineWidth * 2; 
+                  const estimatedTextWidth = drawing.text.length * (fontSize * 0.6); 
+                  const estimatedTextHeight = fontSize;
+                  return (
+                    <g key={drawing.id} onClick={(e) => { if (activeTool === 'cursor') { e.stopPropagation(); setSelectedDrawingId(drawing.id); } }}>
+                      <text
+                        x={tp1.x} y={tp1.y} fill={drawing.color}
+                        fontSize={`${fontSize}px`} textAnchor="start"
+                        dominantBaseline="hanging"
+                        className={activeTool === 'cursor' ? 'cursor-pointer' : ''}
+                      >
+                        {drawing.text}
+                      </text>
+                      {isSelected && (
+                        <rect
+                          x={tp1.x - 2} y={tp1.y - 2}
+                          width={estimatedTextWidth + 4} height={estimatedTextHeight + 4}
+                          stroke={selectionColor} strokeWidth="1"
+                          strokeDasharray="3,3" fill="none"
+                        />
+                      )}
+                    </g>
+                  );
+                }
+                return null;
+              });
+            })()}
+
+            {isDrawing && startPoint && currentEndPoint && ( {/* Drawing previews are already in current screen coordinates */}
               <>
                 {activeTool === 'trendline' && (
                   <line
@@ -487,12 +677,13 @@ const Chart = () => {
                   const plotAreaTopY = 30; 
                   const plotAreaHeight = 280; 
                   let priceAtCrosshair = 0;
-                  if (paddedRange > 0 && crosshairPosition.y >= plotAreaTopY && crosshairPosition.y <= plotAreaTopY + plotAreaHeight) {
-                     priceAtCrosshair = paddedMin + (( (plotAreaTopY + plotAreaHeight) - crosshairPosition.y) / plotAreaHeight) * paddedRange;
+                  // Use yPaddedMin, yPaddedMax, yPaddedRange for price calculation at crosshair
+                  if (yPaddedRange > 0 && crosshairPosition.y >= plotAreaTopY && crosshairPosition.y <= plotAreaTopY + plotAreaHeight) {
+                     priceAtCrosshair = yPaddedMin + (( (plotAreaTopY + plotAreaHeight) - crosshairPosition.y) / plotAreaHeight) * yPaddedRange;
                   } else if (crosshairPosition.y < plotAreaTopY) {
-                    priceAtCrosshair = paddedMax; 
+                    priceAtCrosshair = yPaddedMax; 
                   } else {
-                    priceAtCrosshair = paddedMin; 
+                    priceAtCrosshair = yPaddedMin; 
                   }
                   return (
                     <text
@@ -505,25 +696,28 @@ const Chart = () => {
                   );
                 })()}
                 {(() => {
-                  const candleAreaWidth = chartDimensions.width - 60 - 40; 
-                  const candleSlotWidth = processedData && processedData.length > 0 ? candleAreaWidth / processedData.length : 0;
-                  let closestIndex = -1;
+                  // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
+                  const X_AXIS_MARGIN_LEFT = 50;
+                  const X_AXIS_MARGIN_RIGHT = 60;
+                  const candleAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT; 
+                  const candleSlotWidth = visibleData && visibleData.length > 0 ? candleAreaWidth / visibleData.length : 0;
+                  let closestIndexInVisibleData = -1;
                   let minDiff = Infinity;
 
-                  if (processedData && processedData.length > 0 && candleSlotWidth > 0) { 
-                    for (let i = 0; i < processedData.length; i++) {
-                      const candleXCenter = 40 + (i * candleSlotWidth) + (candleSlotWidth / 2);
+                  if (visibleData && visibleData.length > 0 && candleSlotWidth > 0) { 
+                    for (let i = 0; i < visibleData.length; i++) {
+                      const candleXCenter = X_AXIS_MARGIN_LEFT + (i * candleSlotWidth) + (candleSlotWidth / 2);
                       const diff = Math.abs(candleXCenter - crosshairPosition.x);
-                      if (diff < minDiff) {
+                      if (diff < minDiff && crosshairPosition.x >= X_AXIS_MARGIN_LEFT && crosshairPosition.x <= chartDimensions.width - X_AXIS_MARGIN_RIGHT) {
                         minDiff = diff;
-                        closestIndex = i;
+                        closestIndexInVisibleData = i;
                       }
                     }
                   }
                   
                   let timeAtCrosshair = "";
-                  if (closestIndex !== -1 && processedData && processedData[closestIndex]) {
-                    timeAtCrosshair = formatDate(processedData[closestIndex].timestamp, timeFrame);
+                  if (closestIndexInVisibleData !== -1 && visibleData && visibleData[closestIndexInVisibleData]) {
+                    timeAtCrosshair = formatDate(visibleData[closestIndexInVisibleData].timestamp, timeFrame);
                   }
                   
                   return (
@@ -561,34 +755,46 @@ const Chart = () => {
         </div>
 
         {/* Volume chart container */}
-        <div className="h-32 mt-2 w-full">
+        <div className="h-32 mt-2 w-full"> {/* Ensure this height is accounted for in main chart's yScale if dynamic */}
           <ChartContainer config={{}} className="dark:bg-card bg-card">
             <BarChart
-              data={processedData}
-              margin={{ top: 5, right: 50, left: 20, bottom: 5 }}
+              data={visibleData} // Use visibleData for Volume Chart
+              margin={{ top: 5, right: X_AXIS_MARGIN_RIGHT, left: X_AXIS_MARGIN_LEFT - 20, bottom: 5 }} // Align margins
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
               <XAxis 
                 dataKey="timestamp" 
-                tickFormatter={(value: string) => formatDate(value, timeFrame)} // Pass timeFrame
+                tickFormatter={(value: string, index: number) => {
+                  // Show fewer ticks for volume chart's X-axis to prevent clutter
+                  // This is a simple way; more sophisticated logic might be needed for true alignment
+                  // with the custom X-axis labels of the price chart.
+                  const numTicks = Math.min(10, visibleData.length); // Match approx number of labels on price chart
+                  if (visibleData.length <= numTicks || index % Math.floor(visibleData.length / numTicks) === 0) {
+                    return formatDate(value, timeFrame);
+                  }
+                  return "";
+                }} 
                 stroke="#555"
-                tick={{ fill: '#999' }}
+                tick={{ fill: '#999', fontSize: 10 }}
+                interval="preserveStartEnd" // Attempt to show start and end
               />
               <YAxis
                 dataKey="volume" orientation="right"
-                tick={{ fill: '#999' }} stroke="#555"
+                tick={{ fill: '#999', fontSize: 10 }} stroke="#555"
                 tickFormatter={(value) => {
-                  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-                  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                  if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                  if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                   return value.toLocaleString();
                 }}
+                width={40} // Allocate space for Y-axis labels
               />
               <Tooltip
                 content={<CandlestickTooltip />}
+                position={{ y: 0 }} // Adjust tooltip position if needed
               />
               <Bar
                 dataKey="volume"
-                fill="rgba(33, 150, 243, 0.3)"
+                fill="rgba(33, 150, 243, 0.7)"
               />
             </BarChart>
           </ChartContainer>

@@ -25,7 +25,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-sidebar border-b border-chart-grid p-2 flex items-center space-x-4 h-14 shrink-0">
+    <header className="bg-sidebar border-b border-border p-2 flex items-center space-x-4 h-14 shrink-0"> {/* Updated border */}
       <div>
         <label htmlFor="symbol-input" className="text-xs text-muted-foreground mr-1">
           Symbol:
