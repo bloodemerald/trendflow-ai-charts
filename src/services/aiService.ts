@@ -64,13 +64,13 @@ export async function getAIResponse(chatMessages: ChatMessage[], chartData: Char
     // Changed from require to import
     const { GoogleGenerativeAI } = await import("@google/generative-ai"); 
     // Initialize Gemini AI client here to use the potentially mocked GEMINI_API_KEY
-    console.log('GEMINI_API_KEY available:', !!GEMINI_API_KEY);
+    // console.log('GEMINI_API_KEY available:', !!GEMINI_API_KEY); // Removed for cleanup
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY); 
     const model = genAI.getGenerativeModel({ model: "gemini-pro"}); // Or your desired model
-    console.log("Sending prompt to Gemini:", JSON.stringify(prompt, null, 2));
+    // console.log("Sending prompt to Gemini:", JSON.stringify(prompt, null, 2)); // Removed for cleanup
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    console.log("Received response from Gemini:", JSON.stringify(response, null, 2));
+    // console.log("Received response from Gemini:", JSON.stringify(response, null, 2)); // Removed for cleanup
     return response.text();
     
 

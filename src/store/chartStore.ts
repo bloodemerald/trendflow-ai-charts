@@ -86,6 +86,8 @@ interface ChartState {
   setXZoomLevel: (level: number) => void;
   panXAxis: (delta: number) => void;
   // --- END X-axis Zoom-related state ---
+  isRightSidebarVisible: boolean; // Added for right sidebar visibility
+  toggleRightSidebar: () => void; // Added for right sidebar visibility
   marketSummary: {
     open: number;
     high: number;
@@ -366,4 +368,6 @@ export const useChartStore = create<ChartState>((set, get) => ({
   })),
   clearAllDrawings: () => set({ drawings: [], selectedDrawingId: null }),
   // --- END Drawing-related action implementations ---
+  isRightSidebarVisible: true, // Default to true
+  toggleRightSidebar: () => set((state) => ({ isRightSidebarVisible: !state.isRightSidebarVisible })),
 }));

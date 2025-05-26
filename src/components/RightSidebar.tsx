@@ -1,13 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useChartStore } from '@/store/chartStore'; // Make sure useChartStore is correctly imported
+import { useChartStore } from '@/store/chartStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, Send } from 'lucide-react';
 
 const RightSidebar = () => {
-  // Removed addAIMessage and symbol as they are not directly used here anymore
-  const { chatMessages, addUserMessage, isAIAnalyzing } = useChartStore();
+  const { chatMessages, addUserMessage, isAIAnalyzing, isRightSidebarVisible, toggleRightSidebar } = useChartStore();
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,11 +27,15 @@ const RightSidebar = () => {
     // The actual AI response is handled by the updated addUserMessage in chartStore.
   };
 
+  if (!isRightSidebarVisible) {
+    return null;
+  }
+
   return (
     <div className="w-80 h-full bg-sidebar border-l border-border flex flex-col"> {/* Updated border */}
       <div className="p-3 border-b border-border flex items-center"> {/* Updated border */}
         <h2 className="text-sm font-medium flex-1">AI Assistant</h2>
-        <Button variant="ghost" size="icon" className="w-6 h-6"> {/* Styled button */}
+        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={toggleRightSidebar}> {/* Styled button */}
           <ChevronLeft size={16} />
         </Button>
       </div>
