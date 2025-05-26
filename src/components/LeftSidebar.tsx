@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { useChartStore } from '@/store/chartStore';
-import type { CurrentDrawingSettings } from '@/store/chartStore'; // Import type
-import { 
-  ChevronLeft, 
-  MousePointer, 
+import type { CurrentDrawingSettings, Tool as ActiveToolType } from '@/store/chartStore'; // Import Tool as ActiveToolType
+import {
+  ChevronLeft,
+  MousePointer,
   Crosshair,
   TrendingUp,
   BarChart,
@@ -13,11 +13,17 @@ import {
   Settings
 } from 'lucide-react';
 
-const tools = [
+interface ToolDefinition {
+  id: ActiveToolType;
+  icon: React.ElementType;
+  tooltip: string;
+}
+
+const tools: ToolDefinition[] = [
   { id: 'cursor', icon: MousePointer, tooltip: 'Selection Tool' },
   { id: 'crosshair', icon: Crosshair, tooltip: 'Crosshair' },
   { id: 'trendline', icon: TrendingUp, tooltip: 'Trend Line' },
-  { id: 'fibonacci', icon: BarChart, tooltip: 'Fibonacci' },
+  { id: 'fibonacci', icon: BarChart, tooltip: 'Fibonacci' }, // This was BarChart, assuming it's a typo for a Fibonacci icon if one exists
   { id: 'rectangle', icon: RectangleHorizontal, tooltip: 'Rectangle' },
   { id: 'text', icon: Type, tooltip: 'Text' }
 ];
@@ -43,9 +49,10 @@ const LeftSidebar = () => {
         {tools.map((tool) => (
           <div key={tool.id} className="relative group mb-4">
             <button
+              type="button"
               className={`tool-button ${activeTool === tool.id ? 'active' : ''}`}
               onClick={() => {
-                setActiveTool(tool.id as any);
+                setActiveTool(tool.id);
                 if (['trendline', 'fibonacci', 'rectangle', 'text'].includes(tool.id)) {
                   setShowDrawingSettings(true);
                 }
@@ -60,14 +67,16 @@ const LeftSidebar = () => {
         ))}
         
         <div className="mt-auto relative group">
-          <button 
+          <button
+            type="button"
             className="tool-button"
             onClick={() => setShowDrawingSettings(!showDrawingSettings)}
+            aria-label="Open drawing settings"
           >
             <Settings size={16} />
           </button>
           <div className="absolute left-full ml-2 px-2 py-1 bg-chart-tooltip text-xs rounded hidden group-hover:block z-10">
-            Settings
+            Drawing Settings
           </div>
         </div>
       </div>
@@ -76,7 +85,7 @@ const LeftSidebar = () => {
         <div className="w-48 bg-sidebar border-r border-border p-3"> {/* Updated border */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium">Drawing Settings</h3>
-            <button onClick={() => setShowDrawingSettings(false)}>
+            <button type="button" onClick={() => setShowDrawingSettings(false)} aria-label="Close drawing settings">
               <ChevronLeft size={16} />
             </button>
           </div>
@@ -89,7 +98,9 @@ const LeftSidebar = () => {
                   const isActive = selectedDrawing ? selectedDrawing.color === color : currentDrawingSettings.color === color;
                   return (
                     <button
+                      type="button"
                       key={color}
+                      aria-label={`Set drawing color to ${color}`}
                       className={`w-5 h-5 rounded-full border-2 ${isActive ? 'border-ring' : 'border-transparent'} hover:border-gray-400`}
                       style={{ backgroundColor: color }}
                       onClick={() => {
@@ -112,7 +123,9 @@ const LeftSidebar = () => {
                   const isActive = selectedDrawing ? selectedDrawing.lineStyle === style : currentDrawingSettings.lineStyle === style;
                   return (
                     <button
+                      type="button"
                       key={style}
+                      aria-label={`Set line style to ${style}`}
                       className={`w-7 h-7 flex items-center justify-center border rounded ${isActive ? 'border-ring bg-secondary' : 'border-border'} hover:border-gray-400`} {/* Updated active bg and default border */}
                       onClick={() => {
                         if (selectedDrawingId && selectedDrawing) {

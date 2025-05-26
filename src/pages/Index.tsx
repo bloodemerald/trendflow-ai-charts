@@ -7,7 +7,7 @@ import RightSidebar from '@/components/RightSidebar';
 import { useChartStore } from '@/store/chartStore';
 
 const Index = () => {
-  const { symbol, timeFrame, marketSummary } = useChartStore();
+  const { marketSummary } = useChartStore(); // Removed symbol and timeFrame
   
   // Helper function to format price with appropriate precision
   const formatPrice = (price: number) => {
@@ -80,29 +80,23 @@ const Index = () => {
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">RSI (14)</span>
-                    <span className="font-medium text-foreground">
-                      {Math.min(100, Math.max(0, Math.round(50 + (marketSummary.changePercent * 2)))).toFixed(1)}
-                    </span>
+                    <span className="font-medium text-foreground">N/A</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MACD</span>
-                    <span className={`font-medium ${marketSummary.change >= 0 ? 'text-chart-green' : 'text-chart-red'}`}>
-                      {marketSummary.change >= 0 ? 'Bullish' : 'Bearish'}
-                    </span>
+                    <span className="font-medium text-foreground">N/A</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MA (50)</span>
-                    <span className="font-medium text-foreground">${formatPrice(marketSummary.close * 0.95)}</span>
+                    <span className="font-medium text-foreground">N/A</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MA (200)</span>
-                    <span className="font-medium text-foreground">${formatPrice(marketSummary.close * 0.9)}</span>
+                    <span className="font-medium text-foreground">N/A</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Bollinger Bands</span>
-                    <span className="font-medium text-foreground">
-                      {marketSummary.close > marketSummary.open ? 'Upper' : 'Lower'}
-                    </span>
+                    <span className="font-medium text-foreground">N/A</span>
                   </div>
                 </div>
               </div>
@@ -113,31 +107,19 @@ const Index = () => {
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center">
                     <div className={`w-2 h-2 rounded-full ${marketSummary.change >= 0 ? 'bg-chart-green' : 'bg-chart-red'} mr-2 flex-shrink-0`}></div>
-                    <span className="text-muted-foreground">
-                      {marketSummary.change >= 0 
-                        ? 'Bullish momentum on current timeframe' 
-                        : 'Bearish pressure on current timeframe'}
-                    </span>
+                    <span className="text-muted-foreground">N/A</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">
-                      {marketSummary.high > marketSummary.close * 1.02
-                        ? `Resistance hit at $${formatPrice(marketSummary.high)}`
-                        : `Approaching resistance at $${formatPrice(marketSummary.close * 1.05)}`}
-                    </span>
+                    <span className="text-muted-foreground">N/A</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">
-                      Volume {marketSummary.volume > 10000 ? 'increasing' : 'decreasing'}
-                    </span>
+                    <span className="text-muted-foreground">N/A</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 rounded-full bg-chart-green mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">
-                      {`Support forming at $${formatPrice(marketSummary.low)}`}
-                    </span>
+                    <span className="text-muted-foreground">N/A</span>
                   </div>
                 </div>
               </div>

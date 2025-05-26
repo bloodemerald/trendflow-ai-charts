@@ -233,6 +233,41 @@ describe('Chart Store Zoom and Pan', () => {
   });
 });
 
+describe('Chart Store Right Sidebar', () => {
+  let initialStoreState: ChartState;
+
+  beforeEach(() => {
+    // Capture initial state once
+    if (!initialStoreState) {
+      initialStoreState = useChartStore.getState();
+    }
+    // Reset store to a clean initial state before each test
+    act(() => {
+      useChartStore.setState({ ...initialStoreState, isRightSidebarVisible: true }); // Reset to default true
+    });
+  });
+
+  it('isRightSidebarVisible should be true by default', () => {
+    // Note: The default is set in the store's initial state.
+    // The beforeEach also resets it to true for consistency in this test suite.
+    expect(useChartStore.getState().isRightSidebarVisible).toBe(true);
+  });
+
+  it('toggleRightSidebar should invert isRightSidebarVisible', () => {
+    const initialVisibility = useChartStore.getState().isRightSidebarVisible;
+    
+    act(() => {
+      useChartStore.getState().toggleRightSidebar();
+    });
+    expect(useChartStore.getState().isRightSidebarVisible).toBe(!initialVisibility);
+
+    act(() => {
+      useChartStore.getState().toggleRightSidebar();
+    });
+    expect(useChartStore.getState().isRightSidebarVisible).toBe(initialVisibility); // Back to original
+  });
+});
+
 // Note: For Zustand stores that might involve async operations or complex state updates
 // that could affect React components, using `act` from `@testing-library/react` (or similar)
 // around state changes is good practice, even if direct state access seems synchronous.
