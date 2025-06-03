@@ -54,7 +54,7 @@ export async function getAIResponse(chatMessages: ChatMessage[], chartData: Char
     // Changed from require to import
     const { GoogleGenerativeAI } = await import("@google/generative-ai"); 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY); 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro"}); 
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"}); // Updated model name
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
