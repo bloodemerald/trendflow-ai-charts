@@ -82,6 +82,6 @@ export async function getAIResponse(chatMessages: ChatMessage[], chartData: Char
   } catch (error) {
     console.error('Error calling Gemini API:', error);
     console.error("Full error object from Gemini API:", JSON.stringify(error, null, 2));
-    return 'Error fetching AI response: ' + (error.message || 'Unknown error');
+    return 'Error fetching AI response.';
   }
 }

@@ -35,7 +35,13 @@ const RightSidebar = () => {
     <div className="w-80 h-full bg-sidebar border-l border-border flex flex-col"> {/* Updated border */}
       <div className="p-3 border-b border-border flex items-center"> {/* Updated border */}
         <h2 className="text-sm font-medium flex-1">AI Assistant</h2>
-        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={toggleRightSidebar}> {/* Styled button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="w-6 h-6"
+          onClick={toggleRightSidebar}
+          aria-label="ChevronLeft"
+        >
           <ChevronLeft size={16} />
         </Button>
       </div>
