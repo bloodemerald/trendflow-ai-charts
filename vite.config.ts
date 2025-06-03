@@ -28,4 +28,12 @@ export default defineConfig(({ mode }) => ({
     setupFiles: './src/test-setup.ts', // Configured setup file
     css: true, // If your components import CSS files
   },
+  build: {
+    rollupOptions: {
+      external: (id) => {
+        // Exclude test files from the main build
+        return id.includes('.test.') || id.includes('.spec.');
+      }
+    }
+  }
 }));
