@@ -1,11 +1,5 @@
+
 import { ChatMessage, ChartData } from '../types/types';
-
-// Configure the Gemini API key
-// const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Will be accessed directly in getAIResponse
-
-// if (!GEMINI_API_KEY) { // This check will also move into getAIResponse
-//   console.error('GEMINI_API_KEY is not set in environment variables.');
-// }
 
 // Updated analyzeChartData to format the last N data points
 async function analyzeChartData(chartData: ChartData[], count: number = 50): Promise<string> {
@@ -26,10 +20,10 @@ async function analyzeChartData(chartData: ChartData[], count: number = 50): Pro
 }
 
 export async function getAIResponse(chatMessages: ChatMessage[], chartData: ChartData[]): Promise<string> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Access API key inside the function
+  const GEMINI_API_KEY = "AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E"; // Your provided API key
 
   if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY is not set in environment variables.');
+    console.error('GEMINI_API_KEY is not set.');
     return "Error: GEMINI_API_KEY is not configured.";
   }
 
@@ -57,27 +51,13 @@ export async function getAIResponse(chatMessages: ChatMessage[], chartData: Char
   `;
 
   try {
-    // NOTE: This is a placeholder for the actual API call.
-    // You will need to replace this with the actual Gemini API client library or fetch call.
-    // Example using a hypothetical Gemini API client:
-    
     // Changed from require to import
     const { GoogleGenerativeAI } = await import("@google/generative-ai"); 
-    // Initialize Gemini AI client here to use the potentially mocked GEMINI_API_KEY
-    // console.log('GEMINI_API_KEY available:', !!GEMINI_API_KEY); // Removed for cleanup
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY); 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro"}); // Or your desired model
-    // console.log("Sending prompt to Gemini:", JSON.stringify(prompt, null, 2)); // Removed for cleanup
+    const model = genAI.getGenerativeModel({ model: "gemini-pro"}); 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    // console.log("Received response from Gemini:", JSON.stringify(response, null, 2)); // Removed for cleanup
     return response.text();
-    
-
-    // For now, returning a mocked response:
-    // console.log("Constructed Prompt for AI:", prompt); // Log the prompt for debugging
-    // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call delay
-    // return "This is a mocked AI response. Implement actual API call to Gemini.";
 
   } catch (error) {
     console.error('Error calling Gemini API:', error);
