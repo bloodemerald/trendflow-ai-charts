@@ -1,5 +1,3 @@
-
-import * as React from 'react';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
 import type { DrawingObject, DrawingPoint } from '@/store/chartStore';
