@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useChartStore } from '@/store/chartStore';
@@ -112,9 +113,6 @@ const Chart = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // formatDate and calculateSMA functions have been moved to src/lib/chartUtils.ts
-  // and are imported above.
-
   // Apply indicators to the data
   const processedData = indicators.includes('sma') && chartData && chartData.length > 0
     ? calculateSMA(chartData, 14) 
@@ -139,13 +137,6 @@ const Chart = () => {
   const paddedMax = centerPrice + (zoomedRange * 0.55);
   const paddedRange = paddedMax - paddedMin;
 
-  // Y-axis scaling function
-  const yScale = (val: number) => {
-    // Ensure paddedRange is not zero to avoid division by zero
-    if (paddedRange === 0) return 310 - (280 / 2); // Center if no range
-    return 310 - ((val - paddedMin) / paddedRange * 280);
-  };
-
   // Combined mouse move handler
   const originalDrawingMouseMove = handleMouseMove; 
   const combinedHandleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
@@ -158,7 +149,6 @@ const Chart = () => {
   // Combined mouse leave handler
   const svgMouseLeaveHandler = () => {
     handleMouseLeaveForCrosshair();
-    // If useDrawingTools provided a mouse leave handler, it would be called here too.
   };
   
   // Keyboard Deletion Effect for drawings (remains in Chart.tsx as it's a global window event listener)
@@ -167,9 +157,7 @@ const Chart = () => {
       // Access store directly for deleteDrawing as it's a window event
       const currentSelectedDrawingId = useChartStore.getState().selectedDrawingId;
       if ((event.key === 'Delete' || event.key === 'Backspace') && currentSelectedDrawingId) {
-        // console.log('Deleting drawing (from Chart.tsx window event):', currentSelectedDrawingId);
         useChartStore.getState().deleteDrawing(currentSelectedDrawingId);
-        // useChartStore.getState().setSelectedDrawingId(null); // deleteDrawing should handle this
       }
     };
 
@@ -216,10 +204,8 @@ const Chart = () => {
               zoomOut();
             }
           }
-          // If neither deltaX nor deltaY are significant, nothing happens (e.g. very slight touch)
         }
       }
-      // If Ctrl is not pressed, default wheel behavior (page scrolling) occurs.
     };
 
     svgElement.addEventListener('wheel', handleWheelInteraction, { passive: false });
@@ -227,8 +213,7 @@ const Chart = () => {
     return () => {
       svgElement.removeEventListener('wheel', handleWheelInteraction);
     };
-  }, [svgRef, zoomIn, zoomOut, setXZoomLevel, panXAxis]); // Include panXAxis
-
+  }, [svgRef, zoomIn, zoomOut, setXZoomLevel, panXAxis]);
 
   // Calculate visible data based on xZoomLevel and xPanOffset
   const MIN_VIEWABLE_POINTS = 10;
@@ -244,10 +229,7 @@ const Chart = () => {
     visibleData = processedData.slice(currentStartIndex, endIndex);
   }
 
-
   // Calculate price range for Y-axis scaling with zoom (using full processedData for stable Y-axis unless visibleData is preferred)
-  // For now, Y-axis will scale based on the min/max of the entire processedData, not just visibleData.
-  // This behavior can be changed if dynamic Y-scaling based on visible X-range is desired.
   const yAxisMinPrice = processedData && processedData.length > 0 ? Math.min(...processedData.map(d => d.low ?? 0)) : 0;
   const yAxisMaxPrice = processedData && processedData.length > 0 ? Math.max(...processedData.map(d => d.high ?? 0)) : 100;
   const yRange = yAxisMaxPrice - yAxisMinPrice;
@@ -257,20 +239,13 @@ const Chart = () => {
   const yPaddedMax = yCenterPrice + (yZoomedRange * 0.55);
   const yPaddedRange = yPaddedMax - yPaddedMin;
 
-  // Y-axis scaling function (updated to use new min/max variables)
+  // Y-axis scaling function
   const yScale = (val: number) => {
-    if (yPaddedRange === 0) return chartDimensions.height * 0.85 * 0.5; // Center if no range (main chart area is 85% height)
-    // Assuming price chart area is top 85% of SVG, volume is bottom 15% (excluding margins)
-    // Let's refine this: main chart area height is roughly chartDimensions.height - volumeChartHeight - xAxisLabelHeight
-    // For simplicity, let's assume main chart rendering area is fixed for now.
-    // The existing yScale was: return 310 - ((val - paddedMin) / paddedRange * 280);
-    // Let's assume chart plot area height is chartDimensions.height * 0.7 (example)
-    // And it starts from, say, chartDimensions.height * 0.1
-    const plotHeight = chartDimensions.height * 0.70; // Main candlestick chart area
-    const plotTopMargin = chartDimensions.height * 0.05; // Top margin for price axis labels etc.
+    if (yPaddedRange === 0) return chartDimensions.height * 0.85 * 0.5;
+    const plotHeight = chartDimensions.height * 0.70;
+    const plotTopMargin = chartDimensions.height * 0.05;
     return plotTopMargin + plotHeight - (((val - yPaddedMin) / yPaddedRange) * plotHeight);
   };
-
 
   return (
     <div className="relative h-full flex flex-col">
@@ -328,17 +303,16 @@ const Chart = () => {
               const dataIndex = Math.floor(i * (visibleData.length / Math.min(10, visibleData.length)));
               const entry = visibleData[dataIndex];
               if (!entry) return null;
-              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
-              const X_AXIS_MARGIN_LEFT = 50; // Increased margin for Y-axis labels
-              const X_AXIS_MARGIN_RIGHT = 60; // Increased margin for price scale
+              const X_AXIS_MARGIN_LEFT = 50;
+              const X_AXIS_MARGIN_RIGHT = 60;
               const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
-              const x = X_AXIS_MARGIN_LEFT + (dataIndex * (plotAreaWidth / visibleData.length)) + (plotAreaWidth / visibleData.length / 2) ;
+              const x = X_AXIS_MARGIN_LEFT + (dataIndex * (plotAreaWidth / visibleData.length)) + (plotAreaWidth / visibleData.length / 2);
               
               return (
                 <text
                   key={`x-label-${i}`}
                   x={x}
-                  y={chartDimensions.height - 35} // Position above volume chart, adjust as needed
+                  y={chartDimensions.height - 35}
                   fontSize="10" textAnchor="middle"
                   fill="rgba(255,255,255,0.7)" fontFamily="monospace"
                 >
@@ -348,26 +322,19 @@ const Chart = () => {
             })}
 
             {visibleData && visibleData.length > 0 && visibleData.map((entry, index) => {
-              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
               const X_AXIS_MARGIN_LEFT = 50;
               const X_AXIS_MARGIN_RIGHT = 60;
               const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
               const slotWidth = plotAreaWidth / visibleData.length;
-              // xPos is the left edge of the slot
               const xPos = X_AXIS_MARGIN_LEFT + (index * slotWidth); 
-              
-              // Original slotWidth calculation was problematic:
-              // const slotWidth = ((chartDimensions.width - 60) / processedData.length) * zoomLevel;
-              // Corrected slotWidth based on visibleData and available plot area.
-              // zoomLevel (vertical) should not affect horizontal slotWidth.
 
               return (
                 <CustomCandlestick
                   key={`candle-${currentStartIndex + index}`}
-                  index={currentStartIndex + index} // Pass original index if needed by other parts
-                  x={xPos + slotWidth * 0.1} // Add small padding from left
-                  y={yScale} // yScale already handles mapping price to y-coordinate
-                  width={slotWidth * 0.8} // Reduce width for spacing between candles
+                  index={currentStartIndex + index}
+                  x={xPos + slotWidth * 0.1}
+                  y={yScale}
+                  width={slotWidth * 0.8}
                   open={entry.open}
                   close={entry.close}
                   high={entry.high}
@@ -376,17 +343,14 @@ const Chart = () => {
               );
             })}
             
-            
             {indicators.includes('sma') && visibleData && visibleData.length > 0 && visibleData.map((entry, index) => {
-              if (!entry.sma || index === 0) return null; // Still need to check original index if SMA calculated on processedData
+              if (!entry.sma || index === 0) return null;
               
-              const prevEntryOriginalIndex = currentStartIndex + index -1;
-              // Ensure prevEntry is from the original processedData to get its SMA value
+              const prevEntryOriginalIndex = currentStartIndex + index - 1;
               const prevEntry = prevEntryOriginalIndex >= 0 ? processedData[prevEntryOriginalIndex] : null;
 
               if (!prevEntry || !prevEntry.sma) return null; 
               
-              // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
               const X_AXIS_MARGIN_LEFT = 50;
               const X_AXIS_MARGIN_RIGHT = 60;
               const plotAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT;
@@ -410,16 +374,16 @@ const Chart = () => {
             {[...Array(6)].map((_, i) => {
               const price = yPaddedMin + (yPaddedRange / 5 * i);
               const y = yScale(price);
-              const X_AXIS_MARGIN_RIGHT = 60; // Match definition
+              const X_AXIS_MARGIN_RIGHT = 60;
               return (
                 <g key={`price-axis-${i}`}>
                   <line
-                    x1={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 5} y1={y} // Adjusted position
-                    x2={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 10} y2={y} // Adjusted position
+                    x1={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 5} y1={y}
+                    x2={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 10} y2={y}
                     stroke="rgba(255,255,255,0.3)" strokeWidth={1}
                   />
                   <text
-                    x={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 15} y={y + 4} // Adjusted position
+                    x={chartDimensions.width - X_AXIS_MARGIN_RIGHT + 15} y={y + 4}
                     fontSize="10" textAnchor="start"
                     fill="rgba(255,255,255,0.7)" fontFamily="monospace"
                   >
@@ -430,16 +394,14 @@ const Chart = () => {
             })}
             
             {(() => {
-              // Transformation logic setup
               const X_AXIS_MARGIN_LEFT = 50;
               const X_AXIS_MARGIN_RIGHT = 60;
               const currentPlotAreaWidth = chartDimensions.width > (X_AXIS_MARGIN_LEFT + X_AXIS_MARGIN_RIGHT) ? chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT : 0;
 
-              // Original Y-scale parameters (assuming zoomLevel = 1 at drawing time)
-              const Y_SCALE_PLOT_TOP = 30; // Based on current yScale: 310 - 280
-              const Y_SCALE_PLOT_HEIGHT = 280; // Based on current yScale
+              const Y_SCALE_PLOT_TOP = 30;
+              const Y_SCALE_PLOT_HEIGHT = 280;
               const originalVerticalZoomLevel = 1;
-              const dataMinPrice = minPrice; // minPrice & maxPrice are from full processedData
+              const dataMinPrice = minPrice;
               const dataMaxPrice = maxPrice;
               const originalPriceRange = dataMaxPrice - dataMinPrice;
               const originalZoomedPriceRange = originalPriceRange / originalVerticalZoomLevel;
@@ -452,10 +414,9 @@ const Chart = () => {
                 return originalPaddedMinPrice + (((Y_SCALE_PLOT_TOP + Y_SCALE_PLOT_HEIGHT - screenY) / Y_SCALE_PLOT_HEIGHT) * originalPaddedPriceRange);
               };
               
-              const priceToCurrentScreenY = yScale; // This is the existing yScale function
+              const priceToCurrentScreenY = yScale;
 
-              // Original X-scale parameters (assuming xZoomLevel = 1, xPanOffset = 0 at drawing time)
-              const originalTotalDataPoints = totalDataPoints; // totalDataPoints is from full processedData
+              const originalTotalDataPoints = totalDataPoints;
               const originalSlotWidth = originalTotalDataPoints > 0 && currentPlotAreaWidth > 0 ? currentPlotAreaWidth / originalTotalDataPoints : 0;
 
               const screenXToOriginalDataIndex = (screenX: number): number => {
@@ -467,16 +428,12 @@ const Chart = () => {
               const currentSlotWidth = visibleData.length > 0 && currentPlotAreaWidth > 0 ? currentPlotAreaWidth / visibleData.length : 0;
 
               const originalDataIndexToCurrentScreenX = (dataIndex: number): number => {
-                // Ensure plotAreaWidth and currentSlotWidth are positive to avoid issues with chartDimensions not ready
-                if (currentPlotAreaWidth <=0 || currentSlotWidth <= 0) {
-                   // If chart isn't ready, try to place it reasonably or hide, here returning left margin
+                if (currentPlotAreaWidth <= 0 || currentSlotWidth <= 0) {
                   return X_AXIS_MARGIN_LEFT;
                 }
-                // Calculate X for the center of the slot
                 return X_AXIS_MARGIN_LEFT + (dataIndex - currentStartIndex) * currentSlotWidth + currentSlotWidth / 2;
               };
               
-              // Helper to transform a single drawing point
               const transformPoint = (p: DrawingPoint): DrawingPoint => {
                 const originalDataIndex = screenXToOriginalDataIndex(p.x);
                 const priceValue = screenYToPrice(p.y);
@@ -536,14 +493,12 @@ const Chart = () => {
                   const tp1 = transformPoint(drawing.points[0]);
                   const tp2 = transformPoint(drawing.points[1]);
                   const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
-                  const transformedHeight = tp2.y - tp1.y; // Use transformed points for height/width
-                  // const transformedWidth = tp2.x - tp1.x; // Not directly used for horizontal line x1,x2
+                  const transformedHeight = tp2.y - tp1.y;
 
                   return (
                     <g key={drawing.id} onClick={(e) => { if (activeTool === 'cursor') { e.stopPropagation(); setSelectedDrawingId(drawing.id); } }}>
                       {fibLevels.map((level, index) => {
                         const y = tp1.y + (transformedHeight * level);
-                        // For horizontal lines, use min/max of transformed X coordinates of the base points
                         const x1 = Math.min(tp1.x, tp2.x); 
                         const x2 = Math.max(tp1.x, tp2.x);
                         const levelColor = index === 0 || index === fibLevels.length - 1 ? drawing.color : hexToRgba(drawing.color, 0.7);
@@ -577,7 +532,6 @@ const Chart = () => {
                   );
                 } else if (drawing.type === 'text' && drawing.points.length > 0 && drawing.text) {
                   const tp1 = transformPoint(drawing.points[0]);
-                  // Font size and estimation remain screen-based as per current behavior
                   const fontSize = 8 + drawing.lineWidth * 2; 
                   const estimatedTextWidth = drawing.text.length * (fontSize * 0.6); 
                   const estimatedTextHeight = fontSize;
@@ -606,7 +560,7 @@ const Chart = () => {
               });
             })()}
 
-            {isDrawing && startPoint && currentEndPoint && ( {/* Drawing previews are already in current screen coordinates */}
+            {isDrawing && startPoint && currentEndPoint && (
               <>
                 {activeTool === 'trendline' && (
                   <line
@@ -678,7 +632,6 @@ const Chart = () => {
                   const plotAreaTopY = 30; 
                   const plotAreaHeight = 280; 
                   let priceAtCrosshair = 0;
-                  // Use yPaddedMin, yPaddedMax, yPaddedRange for price calculation at crosshair
                   if (yPaddedRange > 0 && crosshairPosition.y >= plotAreaTopY && crosshairPosition.y <= plotAreaTopY + plotAreaHeight) {
                      priceAtCrosshair = yPaddedMin + (( (plotAreaTopY + plotAreaHeight) - crosshairPosition.y) / plotAreaHeight) * yPaddedRange;
                   } else if (crosshairPosition.y < plotAreaTopY) {
@@ -697,7 +650,6 @@ const Chart = () => {
                   );
                 })()}
                 {(() => {
-                  // Adjust X_AXIS_MARGIN_LEFT and X_AXIS_MARGIN_RIGHT
                   const X_AXIS_MARGIN_LEFT = 50;
                   const X_AXIS_MARGIN_RIGHT = 60;
                   const candleAreaWidth = chartDimensions.width - X_AXIS_MARGIN_LEFT - X_AXIS_MARGIN_RIGHT; 
@@ -756,28 +708,25 @@ const Chart = () => {
         </div>
 
         {/* Volume chart container */}
-        <div className="h-32 mt-2 w-full"> {/* Ensure this height is accounted for in main chart's yScale if dynamic */}
+        <div className="h-32 mt-2 w-full">
           <ChartContainer config={{}} className="dark:bg-card bg-card">
             <BarChart
-              data={visibleData} // Use visibleData for Volume Chart
-              margin={{ top: 5, right: X_AXIS_MARGIN_RIGHT, left: X_AXIS_MARGIN_LEFT - 20, bottom: 5 }} // Align margins
+              data={visibleData}
+              margin={{ top: 5, right: 60, left: 30, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
               <XAxis 
                 dataKey="timestamp" 
                 tickFormatter={(value: string, index: number) => {
-                  // Show fewer ticks for volume chart's X-axis to prevent clutter
-                  // This is a simple way; more sophisticated logic might be needed for true alignment
-                  // with the custom X-axis labels of the price chart.
-                  const numTicks = Math.min(10, visibleData.length); // Match approx number of labels on price chart
-                  if (visibleData.length <= numTicks || index % Math.floor(visibleData.length / numTicks) === 0) {
+                  const numTicks = Math.min(10, visibleData?.length || 0);
+                  if (visibleData && (visibleData.length <= numTicks || index % Math.floor(visibleData.length / numTicks) === 0)) {
                     return formatDate(value, timeFrame);
                   }
                   return "";
                 }} 
                 stroke="#555"
                 tick={{ fill: '#999', fontSize: 10 }}
-                interval="preserveStartEnd" // Attempt to show start and end
+                interval="preserveStartEnd"
               />
               <YAxis
                 dataKey="volume" orientation="right"
@@ -787,11 +736,11 @@ const Chart = () => {
                   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
                   return value.toLocaleString();
                 }}
-                width={40} // Allocate space for Y-axis labels
+                width={40}
               />
               <Tooltip
                 content={<CandlestickTooltip />}
-                position={{ y: 0 }} // Adjust tooltip position if needed
+                position={{ y: 0 }}
               />
               <Bar
                 dataKey="volume"
