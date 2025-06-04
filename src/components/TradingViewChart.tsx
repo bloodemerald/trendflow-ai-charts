@@ -9,6 +9,9 @@ const TradingViewChart: React.FC = () => {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const chartData = useChartStore(state => state.chartData);
+  const symbol = useChartStore(state => state.symbol);
+  const timeFrame = useChartStore(state => state.timeFrame);
+  const indicators = useChartStore(state => state.indicators);
 
   // Initialize chart on mount
   useEffect(() => {
@@ -93,6 +96,23 @@ const TradingViewChart: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Effect for symbol or timeFrame changes
+  useEffect(() => {
+    console.log(`Symbol changed to ${symbol} or Timeframe changed to ${timeFrame}`);
+    if (seriesRef.current) {
+      console.log('Clearing chart data due to symbol/timeframe change.');
+      seriesRef.current.setData([]);
+      // Here you would typically fetch new data based on the new symbol/timeframe
+    }
+  }, [symbol, timeFrame]);
+
+  // Effect for indicators changes
+  useEffect(() => {
+    console.log(`Indicators changed: [${indicators.join(', ')}]`);
+    // This is where you would add logic to render or update indicators on the chart
+    // For now, it just logs the change.
+  }, [indicators]);
 
   return <div ref={containerRef} className="w-full h-full" />;
 };
