@@ -1,10 +1,10 @@
 
 import React, { useEffect, useRef } from 'react';
-import { createChart, CrosshairMode, ColorType, LineData } from 'lightweight-charts';
-import type { IChartApi, ISeriesApi, CandlestickData } from 'lightweight-charts';
-import { useChartStore, ChartData } from '@/store/chartStore'; // Import ChartData type
+import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, CandlestickData, LineData } from 'lightweight-charts';
+import { useChartStore, ChartData } from '@/store/chartStore';
 
-const SMA_PERIOD = 50; // Define SMA period
+const SMA_PERIOD = 50;
 
 // Helper function to calculate SMA
 const calculateSMA = (data: ChartData[], period: number): LineData[] => {
@@ -21,20 +21,26 @@ const TradingViewChart: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const smaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null); // Ref for SMA series
+  const smaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  
   const chartData = useChartStore(state => state.chartData);
   const symbol = useChartStore(state => state.symbol);
   const timeFrame = useChartStore(state => state.timeFrame);
   const indicators = useChartStore(state => state.indicators);
 
-  // Initialize chart on mount
+  // Initialize chart
   useEffect(() => {
-    if (!containerRef.current || chartRef.current) return;
+    if (!containerRef.current) return;
 
     console.log('[TradingViewChart] Initializing chart...');
     
     try {
-      chartRef.current = createChart(containerRef.current, {
+      // Clean up any existing chart
+      if (chartRef.current) {
+        chartRef.current.remove();
+      }
+
+      const chart = createChart(containerRef.current, {
         layout: {
           background: { type: ColorType.Solid, color: '#0f172a' },
           textColor: '#e2e8f0',
@@ -48,9 +54,10 @@ const TradingViewChart: React.FC = () => {
         height: containerRef.current.clientHeight,
       });
 
-      console.log('[TradingViewChart] Chart created:', chartRef.current);
+      chartRef.current = chart;
       
-      seriesRef.current = chartRef.current.addCandlestickSeries({
+      // Add candlestick series
+      const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderVisible: false,
@@ -58,7 +65,9 @@ const TradingViewChart: React.FC = () => {
         wickDownColor: '#ef4444',
       });
       
-      console.log('[TradingViewChart] Candlestick series added:', seriesRef.current);
+      seriesRef.current = candlestickSeries;
+      console.log('[TradingViewChart] Chart and series created successfully');
+      
     } catch (error) {
       console.error('[TradingViewChart] Error initializing chart:', error);
     }
@@ -66,76 +75,98 @@ const TradingViewChart: React.FC = () => {
     // Cleanup function
     return () => {
       if (chartRef.current) {
-        // Remove all series before removing the chart
-        if (seriesRef.current) chartRef.current.removeSeries(seriesRef.current);
-        if (smaSeriesRef.current) chartRef.current.removeSeries(smaSeriesRef.current);
-        chartRef.current.remove();
+        try {
+          chartRef.current.remove();
+        } catch (error) {
+          console.error('[TradingViewChart] Error during cleanup:', error);
+        }
         chartRef.current = null;
         seriesRef.current = null;
         smaSeriesRef.current = null;
       }
     };
-  }, []);
+  }, []); // Empty dependency array - only run once
 
-  // Update chart data when store data changes
+  // Update chart data
   useEffect(() => {
-    if (!chartData) { // chartData could be initially null or undefined from the store
-      console.log('[TradingViewChart] chartData is null or undefined.');
-      if (seriesRef.current) seriesRef.current.setData([]);
-      if (smaSeriesRef.current) smaSeriesRef.current.setData([]);
+    if (!seriesRef.current || !chartData) {
+      console.log('[TradingViewChart] No series or chartData available');
       return;
     }
     
-    console.log('[TradingViewChart] Received chartData from store:', chartData.length, 'points');
+    console.log('[TradingViewChart] Updating chart with', chartData.length, 'data points');
 
-    if (seriesRef.current) {
-      if (!chartData.length) {
-        console.log('[TradingViewChart] chartData is empty, clearing main series data.');
+    try {
+      if (chartData.length === 0) {
         seriesRef.current.setData([]);
       } else {
-        console.log('[TradingViewChart] Updating main chart with', chartData.length, 'data points');
-        try {
-          const mappedData: CandlestickData[] = chartData.map(d => ({
-            time: d.time as any,
-            open: d.open,
-            high: d.high,
-            low: d.low,
-            close: d.close,
-          }));
-          seriesRef.current.setData(mappedData);
-          console.log('[TradingViewChart] Main chart data updated successfully');
-        } catch (error) {
-          console.error('[TradingViewChart] Error updating main chart data:', error);
-        }
+        const mappedData: CandlestickData[] = chartData.map(d => ({
+          time: d.time as any,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+        }));
+        seriesRef.current.setData(mappedData);
+        console.log('[TradingViewChart] Chart data updated successfully');
       }
+    } catch (error) {
+      console.error('[TradingViewChart] Error updating chart data:', error);
     }
+  }, [chartData]);
 
-    // Update SMA series if it exists and 'sma' indicator is active
-    if (smaSeriesRef.current && indicators.includes('sma')) {
-      if (!chartData.length) {
-        console.log('[TradingViewChart] chartData is empty, clearing SMA series data.');
-        smaSeriesRef.current.setData([]);
-      } else {
-        console.log('[TradingViewChart] Recalculating and updating SMA data.');
-        try {
+  // Handle indicators
+  useEffect(() => {
+    if (!chartRef.current) return;
+    
+    const smaActive = indicators.includes('sma');
+    console.log('[TradingViewChart] SMA indicator active:', smaActive);
+
+    try {
+      if (smaActive && !smaSeriesRef.current) {
+        // Add SMA series
+        const smaSeries = chartRef.current.addLineSeries({
+          color: '#FFD700',
+          lineWidth: 2,
+        });
+        smaSeriesRef.current = smaSeries;
+        
+        // Set SMA data if available
+        if (chartData && chartData.length >= SMA_PERIOD) {
+          const smaData = calculateSMA(chartData, SMA_PERIOD);
+          smaSeries.setData(smaData);
+        }
+        console.log('[TradingViewChart] SMA series added');
+        
+      } else if (!smaActive && smaSeriesRef.current) {
+        // Remove SMA series
+        chartRef.current.removeSeries(smaSeriesRef.current);
+        smaSeriesRef.current = null;
+        console.log('[TradingViewChart] SMA series removed');
+      } else if (smaActive && smaSeriesRef.current && chartData) {
+        // Update existing SMA series
+        if (chartData.length >= SMA_PERIOD) {
           const smaData = calculateSMA(chartData, SMA_PERIOD);
           smaSeriesRef.current.setData(smaData);
-          console.log('[TradingViewChart] SMA data updated successfully');
-        } catch (error) {
-          console.error('[TradingViewChart] Error updating SMA data:', error);
         }
       }
+    } catch (error) {
+      console.error('[TradingViewChart] Error handling indicators:', error);
     }
-  }, [chartData, indicators]); // Add indicators to dependency array
+  }, [indicators, chartData]);
 
   // Handle resize
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
+        try {
+          chartRef.current.applyOptions({
+            width: containerRef.current.clientWidth,
+            height: containerRef.current.clientHeight,
+          });
+        } catch (error) {
+          console.error('[TradingViewChart] Error during resize:', error);
+        }
       }
     };
     
@@ -143,52 +174,17 @@ const TradingViewChart: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Effect for symbol or timeFrame changes
+  // Handle symbol/timeframe changes
   useEffect(() => {
-    console.log(`[TradingViewChart] Symbol changed to ${symbol} or Timeframe changed to ${timeFrame}`);
+    console.log(`[TradingViewChart] Symbol: ${symbol}, Timeframe: ${timeFrame}`);
     if (seriesRef.current) {
-      console.log('[TradingViewChart] Clearing chart data due to symbol/timeframe change.');
-      seriesRef.current.setData([]);
-      // Here you would typically fetch new data based on the new symbol/timeframe
+      try {
+        seriesRef.current.setData([]);
+      } catch (error) {
+        console.error('[TradingViewChart] Error clearing data on symbol/timeframe change:', error);
+      }
     }
   }, [symbol, timeFrame]);
-
-  // Effect for indicators changes
-  useEffect(() => {
-    if (!chartRef.current) return;
-    console.log(`[TradingViewChart] Indicators changed: [${indicators.join(', ')}]`);
-
-    const smaActive = indicators.includes('sma');
-
-    if (smaActive && !smaSeriesRef.current) {
-      // Add SMA series
-      console.log('[TradingViewChart] Adding SMA series...');
-      try {
-        smaSeriesRef.current = chartRef.current.addLineSeries({
-          color: '#FFD700', // Gold color for SMA
-          lineWidth: 2,
-        });
-        console.log('[TradingViewChart] SMA series added.');
-        if (chartData && chartData.length >= SMA_PERIOD) {
-          const smaData = calculateSMA(chartData, SMA_PERIOD);
-          smaSeriesRef.current.setData(smaData);
-          console.log('[TradingViewChart] SMA data set after adding series.');
-        }
-      } catch (error) {
-        console.error('[TradingViewChart] Error adding SMA series:', error);
-      }
-    } else if (!smaActive && smaSeriesRef.current) {
-      // Remove SMA series
-      console.log('[TradingViewChart] Removing SMA series...');
-      try {
-        chartRef.current.removeSeries(smaSeriesRef.current);
-        smaSeriesRef.current = null;
-        console.log('[TradingViewChart] SMA series removed.');
-      } catch (error) {
-        console.error('[TradingViewChart] Error removing SMA series:', error);
-      }
-    }
-  }, [indicators, chartData]); // chartData is needed here to set initial data if series is added
 
   return <div ref={containerRef} className="w-full h-full" />;
 };
