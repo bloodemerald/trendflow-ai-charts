@@ -155,7 +155,7 @@ const initialMessages: ChatMessage[] = [
 export const useChartStore = create<ChartState>((set, get) => ({
   symbol: 'BTC/USD',
   setSymbol: (symbol) => set({ symbol }),
-  timeFrame: '1d',
+  timeFrame: '1m',
   setTimeFrame: (timeFrame) => set({ timeFrame }),
   chartData: generateMockChartData(),
   setChartData: (data) => {
