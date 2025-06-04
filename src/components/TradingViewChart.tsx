@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { createChart, CrosshairMode } from 'lightweight-charts';
+import { createChart, CrosshairMode, ColorType } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi, CandlestickData } from 'lightweight-charts';
 import { useChartStore } from '@/store/chartStore';
 
@@ -19,7 +19,7 @@ const TradingViewChart: React.FC = () => {
     try {
       chartRef.current = createChart(containerRef.current, {
         layout: {
-          background: { type: 'solid', color: '#0f172a' },
+          background: { type: ColorType.Solid, color: '#0f172a' },
           textColor: '#e2e8f0',
         },
         grid: {
