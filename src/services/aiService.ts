@@ -40,12 +40,25 @@ export async function getAIResponse(chatMessages: ChatMessage[], chartData: Char
     Here is the recent chart data (last 50 periods, most recent last):
     ${detailedChartData}
 
-    Please analyze this data along with the recent chat history to:
-    1. Identify the current market trend (e.g., bullish, bearish, sideways).
-    2. Determine key support and resistance levels.
-    3. Spot any basic chart patterns (e.g., head and shoulders, double top/bottom, triangles, channels).
-    4. Provide potential trading signals or noteworthy insights based on your analysis.
-    Respond clearly and concisely.
+    Please analyze this data and provide a well-structured response using the following format:
+
+    📊 **MARKET TREND**
+    [Identify current trend: bullish/bearish/sideways with brief explanation]
+
+    📈 **KEY LEVELS**
+    • Support: [price level and reasoning]
+    • Resistance: [price level and reasoning]
+
+    🔍 **TECHNICAL PATTERNS**
+    [Identify any chart patterns like head & shoulders, triangles, channels, etc.]
+
+    ⚡ **TRADING SIGNALS**
+    [Provide specific actionable insights or potential entry/exit points]
+
+    🎯 **SUMMARY**
+    [2-3 sentence conclusion with the most important takeaway]
+
+    Keep each section concise and professional. Use bullet points where appropriate.
     
     AI Analyst:
   `;
