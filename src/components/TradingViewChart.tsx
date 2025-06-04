@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
+import { createChart, ColorType } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi, CandlestickData, LineData } from 'lightweight-charts';
 import { useChartStore, ChartData } from '@/store/chartStore';
 
@@ -49,15 +49,14 @@ const TradingViewChart: React.FC = () => {
           vertLines: { color: '#334155' },
           horzLines: { color: '#334155' },
         },
-        crosshair: { mode: CrosshairMode.Normal },
         width: containerRef.current.clientWidth,
         height: containerRef.current.clientHeight,
       });
 
       chartRef.current = chart;
       
-      // Add candlestick series
-      const candlestickSeries = chart.addCandlestickSeries({
+      // Add candlestick series using correct API
+      const candlestickSeries = chart.addSeries('Candlestick', {
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderVisible: false,
@@ -124,8 +123,8 @@ const TradingViewChart: React.FC = () => {
 
     try {
       if (smaActive && !smaSeriesRef.current) {
-        // Add SMA series
-        const smaSeries = chartRef.current.addLineSeries({
+        // Add SMA series using correct API
+        const smaSeries = chartRef.current.addSeries('Line', {
           color: '#FFD700',
           lineWidth: 2,
         });

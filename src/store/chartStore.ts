@@ -1,8 +1,8 @@
+
 import { create } from 'zustand';
-import { getAIResponse } from '../services/aiService';
 
 type ChartData = {
-  time: number; // Changed from timestamp: string
+  time: number;
   open: number;
   high: number;
   low: number;
@@ -10,7 +10,7 @@ type ChartData = {
   volume: number;
 };
 
-// Export ChartData to be used in other files like TradingViewChart.tsx
+// Export ChartData to be used in other files
 export type { ChartData };
 
 export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
@@ -30,14 +30,13 @@ interface ChartState {
   chartData: ChartData[];
   setChartData: (data: ChartData[]) => void;
   indicators: string[];
-  toggleIndicator: (indicatorName: string) => void; // Added
+  toggleIndicator: (indicatorName: string) => void;
   chatMessages: ChatMessage[];
   addUserMessage: (text: string) => void;
-  // addAIMessage: (text: string) => void; // To be removed
   isAIAnalyzing: boolean;
   setIsAIAnalyzing: (isAnalyzing: boolean) => void;
-  isRightSidebarVisible: boolean; // Added for right sidebar visibility
-  toggleRightSidebar: () => void; // Added for right sidebar visibility
+  isRightSidebarVisible: boolean;
+  toggleRightSidebar: () => void;
   marketSummary: {
     open: number;
     high: number;
@@ -48,11 +47,10 @@ interface ChartState {
     volume: number;
   };
   updateMarketSummary: () => void;
-  latestSMA50: number | null; // Added for MA (50)
-  // No explicit setter for latestSMA50 in the interface, managed by updateMarketSummary
+  latestSMA50: number | null;
 }
 
-const SMA_PERIOD_FOR_SUMMARY = 50; // Define SMA period for summary
+const SMA_PERIOD_FOR_SUMMARY = 50;
 
 // Helper to calculate SMA for the last point
 const calculateLastSMA = (data: ChartData[], period: number): number | null => {
@@ -72,7 +70,6 @@ const generateMockChartData = (): ChartData[] => {
   for (let i = 99; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(now.getDate() - i);
-    // Convert date to Unix timestamp in seconds
     const timestampInSeconds = Math.floor(date.getTime() / 1000);
     
     const open = basePrice + (Math.random() * 2 - 1);
@@ -82,7 +79,7 @@ const generateMockChartData = (): ChartData[] => {
     const volume = Math.floor(Math.random() * 1000) + 500;
     
     data.push({
-      time: timestampInSeconds, // Changed from timestamp: date.toISOString()
+      time: timestampInSeconds,
       open,
       high,
       low,
@@ -114,10 +111,9 @@ export const useChartStore = create<ChartState>((set, get) => ({
   chartData: generateMockChartData(),
   setChartData: (data) => {
     set({ chartData: data });
-    get().updateMarketSummary(); // This will now also update latestSMA50
+    get().updateMarketSummary();
   },
-  indicators: ['sma'], // Keep 'sma' as a default for now, or set to []
-  // addIndicator and removeIndicator have been fully deleted.
+  indicators: ['sma'],
   toggleIndicator: (indicatorName) => set((state) => {
     const newIndicators = state.indicators.includes(indicatorName)
       ? state.indicators.filter(ind => ind !== indicatorName)
@@ -125,14 +121,14 @@ export const useChartStore = create<ChartState>((set, get) => ({
     return { indicators: newIndicators };
   }),
   chatMessages: initialMessages,
-  addUserMessage: (text) => { // This is the combined and corrected function
-    // Add user message and set analyzing state immediately
+  addUserMessage: (text) => {
+    // Add user message
     set((state) => ({
       chatMessages: [
         ...state.chatMessages,
         {
           id: Date.now().toString(),
-          sender: 'user' as 'user', // Type assertion
+          sender: 'user' as 'user',
           text,
           timestamp: new Date(),
         },
@@ -140,43 +136,22 @@ export const useChartStore = create<ChartState>((set, get) => ({
       isAIAnalyzing: true,
     }));
 
-    // Perform AI call
-    // Use get() to access the latest state within this async operation
-    const currentMessages = get().chatMessages;
-    const currentChartData = get().chartData;
-
-    getAIResponse(currentMessages, currentChartData)
-      .then((aiResponseText) => {
-        set((state) => ({
-          chatMessages: [
-            ...state.chatMessages,
-            {
-              id: Date.now().toString() + '-ai',
-              sender: 'ai' as 'ai', // Type assertion
-              text: aiResponseText,
-              timestamp: new Date(),
-            },
-          ],
-          isAIAnalyzing: false,
-        }));
-      })
-      .catch((error) => {
-        console.error("Error getting AI response:", error);
-        set((state) => ({
-          chatMessages: [
-            ...state.chatMessages,
-            {
-              id: Date.now().toString() + '-error',
-              sender: 'ai' as 'ai', // Type assertion
-              text: "Sorry, I encountered an error. Please try again.",
-              timestamp: new Date(),
-            },
-          ],
-          isAIAnalyzing: false,
-        }));
-      });
+    // Simulate AI response
+    setTimeout(() => {
+      set((state) => ({
+        chatMessages: [
+          ...state.chatMessages,
+          {
+            id: Date.now().toString() + '-ai',
+            sender: 'ai' as 'ai',
+            text: "I've analyzed the chart data. The current trend shows interesting patterns with support levels around the recent lows.",
+            timestamp: new Date(),
+          },
+        ],
+        isAIAnalyzing: false,
+      }));
+    }, 2000);
   },
-  // addAIMessage is no longer needed as its logic is merged into addUserMessage
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
   marketSummary: {
@@ -188,7 +163,7 @@ export const useChartStore = create<ChartState>((set, get) => ({
     changePercent: 0,
     volume: 0
   },
-  latestSMA50: null, // Initialize latestSMA50
+  latestSMA50: null,
   updateMarketSummary: () => {
     const { chartData } = get();
     
@@ -197,16 +172,14 @@ export const useChartStore = create<ChartState>((set, get) => ({
         marketSummary: {
           open: 0, high: 0, low: 0, close: 0, change: 0, changePercent: 0, volume: 0
         },
-        latestSMA50: null // Reset SMA if no data
+        latestSMA50: null
       });
       return;
     }
     
-    // Get first and last data points for the period
     const firstPoint = chartData[0];
     const lastPoint = chartData[chartData.length - 1];
     
-    // Find highest high and lowest low
     let highestHigh = chartData[0].high;
     let lowestLow = chartData[0].low;
     let totalVolume = 0;
@@ -217,12 +190,9 @@ export const useChartStore = create<ChartState>((set, get) => ({
       totalVolume += point.volume;
     });
     
-    // Calculate change and change percentage
     const change = lastPoint.close - firstPoint.open;
-    // Prevent division by zero if firstPoint.open is 0
     const changePercent = firstPoint.open === 0 ? 0 : (change / firstPoint.open) * 100;
     
-    // Calculate latest SMA for MA (50)
     const latestSMAValue = calculateLastSMA(chartData, SMA_PERIOD_FOR_SUMMARY);
 
     set({
@@ -235,9 +205,9 @@ export const useChartStore = create<ChartState>((set, get) => ({
         changePercent,
         volume: totalVolume
       },
-      latestSMA50: latestSMAValue // Set the calculated SMA value
+      latestSMA50: latestSMAValue
     });
   },
-  isRightSidebarVisible: true, // Default to true
+  isRightSidebarVisible: true,
   toggleRightSidebar: () => set((state) => ({ isRightSidebarVisible: !state.isRightSidebarVisible })),
 }));
