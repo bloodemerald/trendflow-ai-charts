@@ -2,7 +2,8 @@
 import React from 'react';
 import Header from '@/components/Header';
 import LeftSidebar from '@/components/LeftSidebar';
-import Chart from '@/components/Chart';
+// Use a TradingView style chart for better interaction
+import TradingViewChart from '@/components/TradingViewChart';
 import RightSidebar from '@/components/RightSidebar';
 import { useChartStore } from '@/store/chartStore';
 
@@ -44,7 +45,7 @@ const Index = () => {
         <main className="flex-1 flex flex-col min-h-0">
           {/* Chart container - takes remaining space */}
           <div className="flex-1 p-4 min-h-0 overflow-hidden">
-            <Chart />
+            <TradingViewChart />
           </div>
           
           {/* Bottom panels - always visible with fixed height */}
