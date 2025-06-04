@@ -14,9 +14,10 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  Tooltip, 
+  Tooltip,
   BarChart,
-  Bar
+  Bar,
+  Cell
 } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
@@ -740,10 +741,14 @@ const Chart = () => {
                 content={<CandlestickTooltip />}
                 position={{ y: 0 }}
               />
-              <Bar
-                dataKey="volume"
-                fill="rgba(33, 150, 243, 0.7)"
-              />
+              <Bar dataKey="volume">
+                {visibleData?.map((entry, i) => (
+                  <Cell
+                    key={`vol-${i}`}
+                    fill={entry.close > entry.open ? 'rgba(76,175,80,0.7)' : 'rgba(244,67,54,0.7)'}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ChartContainer>
         </div>
