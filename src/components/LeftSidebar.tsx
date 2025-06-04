@@ -1,52 +1,52 @@
 
 import React from 'react';
-import { useChartStore } from '@/store/chartStore';
-import type { CurrentDrawingSettings, Tool as ActiveToolType } from '@/store/chartStore';
+// import { useChartStore } from '@/store/chartStore'; // No longer needed if all drawing features are removed
+// import type { CurrentDrawingSettings, Tool as ActiveToolType } from '@/store/chartStore'; // These types are removed
 import {
   ChevronLeft,
-  MousePointer,
-  Crosshair,
-  TrendingUp,
-  BarChart,
-  RectangleHorizontal,
-  Type,
-  Settings
+  // MousePointer, // Icon for removed tool
+  // Crosshair, // Icon for removed tool
+  // TrendingUp, // Icon for removed tool
+  // BarChart, // Icon for removed tool
+  // RectangleHorizontal, // Icon for removed tool
+  // Type, // Icon for removed tool
+  Settings // Keep settings if there's a generic settings panel, otherwise remove
 } from 'lucide-react';
 
-interface ToolDefinition {
-  id: ActiveToolType;
-  icon: React.ElementType;
-  tooltip: string;
-}
+// interface ToolDefinition {
+//   id: ActiveToolType;
+//   icon: React.ElementType;
+//   tooltip: string;
+// }
 
-const tools: ToolDefinition[] = [
-  { id: 'cursor', icon: MousePointer, tooltip: 'Selection Tool' },
-  { id: 'crosshair', icon: Crosshair, tooltip: 'Crosshair' },
-  { id: 'trendline', icon: TrendingUp, tooltip: 'Trend Line' },
-  { id: 'fibonacci', icon: BarChart, tooltip: 'Fibonacci' },
-  { id: 'rectangle', icon: RectangleHorizontal, tooltip: 'Rectangle' },
-  { id: 'text', icon: Type, tooltip: 'Text' }
-];
+// const tools: ToolDefinition[] = [
+//   { id: 'cursor', icon: MousePointer, tooltip: 'Selection Tool' },
+//   { id: 'crosshair', icon: Crosshair, tooltip: 'Crosshair' },
+//   { id: 'trendline', icon: TrendingUp, tooltip: 'Trend Line' },
+//   { id: 'fibonacci', icon: BarChart, tooltip: 'Fibonacci' },
+//   { id: 'rectangle', icon: RectangleHorizontal, tooltip: 'Rectangle' },
+//   { id: 'text', icon: Type, tooltip: 'Text' }
+// ];
 
 const LeftSidebar = () => {
-  const { 
-    activeTool, 
-    setActiveTool, 
-    showDrawingSettings, 
-    setShowDrawingSettings,
-    currentDrawingSettings, 
-    updateDrawingSetting,
-    selectedDrawingId,
-    drawings,
-    updateDrawingProperties
-  } = useChartStore();
+  // const {
+  //   activeTool,
+  //   setActiveTool,
+  //   showDrawingSettings,
+  //   setShowDrawingSettings,
+  //   currentDrawingSettings,
+  //   updateDrawingSetting,
+  //   selectedDrawingId,
+  //   drawings,
+  //   updateDrawingProperties
+  // } = useChartStore();
 
-  const selectedDrawing = drawings.find(d => d.id === selectedDrawingId);
+  // const selectedDrawing = drawings.find(d => d.id === selectedDrawingId);
   
   return (
     <div className="flex h-full">
       <div className="w-12 bg-sidebar py-4 flex flex-col items-center border-r border-border">
-        {tools.map((tool) => (
+        {/* {tools.map((tool) => (
           <div key={tool.id} className="relative group mb-4">
             <button
               type="button"
@@ -64,9 +64,9 @@ const LeftSidebar = () => {
               {tool.tooltip}
             </div>
           </div>
-        ))}
+        ))} */}
         
-        <div className="mt-auto relative group">
+        {/* <div className="mt-auto relative group">
           <button
             type="button"
             className="tool-button"
@@ -78,10 +78,10 @@ const LeftSidebar = () => {
           <div className="absolute left-full ml-2 px-2 py-1 bg-chart-tooltip text-xs rounded hidden group-hover:block z-10">
             Drawing Settings
           </div>
-        </div>
+        </div> */}
       </div>
       
-      {showDrawingSettings && (
+      {/* {showDrawingSettings && (
         <div className="w-48 bg-sidebar border-r border-border p-3">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium">Drawing Settings</h3>
@@ -166,7 +166,7 @@ const LeftSidebar = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

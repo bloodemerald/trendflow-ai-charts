@@ -12,41 +12,12 @@ type ChartData = {
 
 export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
 
-export type Tool = 'cursor' | 'crosshair' | 'trendline' | 'fibonacci' | 'rectangle' | 'text'; // Export the Tool type
-
 type ChatMessage = {
   id: string;
   sender: 'user' | 'ai';
   text: string;
   timestamp: Date;
 };
-
-// --- BEGIN Drawing-related types ---
-export interface DrawingPoint {
-  x: number;
-  y: number;
-}
-
-export type DrawingObjectType = 'trendline' | 'rectangle' | 'text' | 'fibonacci';
-
-export type LineStyle = 'solid' | 'dashed' | 'dotted';
-
-export interface DrawingObject {
-  id: string;
-  type: DrawingObjectType;
-  points: DrawingPoint[];
-  color: string;
-  lineStyle: LineStyle;
-  lineWidth: number;
-  text?: string;
-}
-
-export interface CurrentDrawingSettings {
-  color: string;
-  lineStyle: LineStyle;
-  lineWidth: number;
-}
-// --- END Drawing-related types ---
 
 interface ChartState {
   symbol: string;
@@ -55,37 +26,13 @@ interface ChartState {
   setTimeFrame: (timeFrame: TimeFrame) => void;
   chartData: ChartData[];
   setChartData: (data: ChartData[]) => void;
-  activeTool: Tool;
-  setActiveTool: (tool: Tool) => void;
   indicators: string[];
-  addIndicator: (indicator: string) => void; // Will be replaced by toggleIndicator
-  removeIndicator: (indicator: string) => void; // Will be replaced by toggleIndicator
   toggleIndicator: (indicatorName: string) => void; // Added
   chatMessages: ChatMessage[];
   addUserMessage: (text: string) => void;
   // addAIMessage: (text: string) => void; // To be removed
   isAIAnalyzing: boolean;
   setIsAIAnalyzing: (isAnalyzing: boolean) => void;
-  showDrawingSettings: boolean;
-  setShowDrawingSettings: (show: boolean) => void;
-  // --- BEGIN Drawing-related state ---
-  drawings: DrawingObject[];
-  currentDrawingSettings: CurrentDrawingSettings;
-  selectedDrawingId: string | null;
-  // --- END Drawing-related state ---
-  // --- BEGIN Zoom-related state ---
-  zoomLevel: number;
-  setZoomLevel: (level: number) => void;
-  zoomIn: () => void;
-  zoomOut: () => void;
-  resetZoom: () => void;
-  // --- END Zoom-related state ---
-  // --- BEGIN X-axis Zoom-related state ---
-  xZoomLevel: number;
-  xPanOffset: number;
-  setXZoomLevel: (level: number) => void;
-  panXAxis: (delta: number) => void;
-  // --- END X-axis Zoom-related state ---
   isRightSidebarVisible: boolean; // Added for right sidebar visibility
   toggleRightSidebar: () => void; // Added for right sidebar visibility
   marketSummary: {
@@ -98,17 +45,6 @@ interface ChartState {
     volume: number;
   };
   updateMarketSummary: () => void;
-  // --- BEGIN Drawing-related actions ---
-  addDrawing: (drawing: DrawingObject) => void;
-  updateDrawingSetting: <K extends keyof CurrentDrawingSettings>(
-    key: K,
-    value: CurrentDrawingSettings[K]
-  ) => void;
-  setSelectedDrawingId: (id: string | null) => void;
-  deleteDrawing: (id: string) => void;
-  updateDrawingProperties: (drawingId: string, properties: Partial<Omit<DrawingObject, 'id' | 'type' | 'points'>>) => void;
-  clearAllDrawings: () => void;
-  // --- END Drawing-related actions ---
 }
 
 // Generate some mock data for initial rendering
@@ -163,19 +99,8 @@ export const useChartStore = create<ChartState>((set, get) => ({
     // After updating chart data, also update market summary
     get().updateMarketSummary();
   },
-  activeTool: 'cursor',
-  setActiveTool: (tool) => set({ activeTool: tool }),
   indicators: ['sma'], // Keep 'sma' as a default for now, or set to []
-  // Remove old addIndicator and removeIndicator
-  addIndicator: (indicator) => set((state) => { // This will be effectively replaced
-    if (!state.indicators.includes(indicator)) {
-      return { indicators: [...state.indicators, indicator] };
-    }
-    return {};
-  }),
-  removeIndicator: (indicator) => set((state) => ({ // This will be effectively replaced
-    indicators: state.indicators.filter((i) => i !== indicator) 
-  })),
+  // addIndicator and removeIndicator have been fully deleted.
   toggleIndicator: (indicatorName) => set((state) => {
     const newIndicators = state.indicators.includes(indicatorName)
       ? state.indicators.filter(ind => ind !== indicatorName)
@@ -237,69 +162,6 @@ export const useChartStore = create<ChartState>((set, get) => ({
   // addAIMessage is no longer needed as its logic is merged into addUserMessage
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
-  showDrawingSettings: false,
-  setShowDrawingSettings: (show) => set({ showDrawingSettings: show }),
-  // --- BEGIN Drawing-related state initialization ---
-  drawings: [],
-  currentDrawingSettings: {
-    color: '#2196F3', // Default blue color
-    lineStyle: 'solid',
-    lineWidth: 1,
-  },
-  selectedDrawingId: null, // Initialized
-  // --- END Drawing-related state initialization ---
-  // --- BEGIN Zoom-related state initialization ---
-  zoomLevel: 1,
-  setZoomLevel: (level) => set({ zoomLevel: Math.max(0.5, Math.min(5, level)) }),
-  zoomIn: () => set((state) => ({ zoomLevel: Math.min(5, state.zoomLevel * 1.2) })),
-  zoomOut: () => set((state) => ({ zoomLevel: Math.max(0.5, state.zoomLevel / 1.2) })),
-  resetZoom: () => set({ zoomLevel: 1 }),
-  // --- END Zoom-related state initialization ---
-  // --- BEGIN X-axis Zoom-related state initialization ---
-  xZoomLevel: 1, // Default to 1 (all data visible)
-  xPanOffset: 0, // Default to 0 (start from the beginning)
-  setXZoomLevel: (level) => set((state) => {
-    const { chartData, xZoomLevel: currentXZoomLevel, xPanOffset: currentXPanOffset } = state;
-    const totalDataPoints = chartData.length;
-    const MIN_VIEWABLE_POINTS = 10;
-
-    const minZoomLevel = 1; // Cannot zoom out further than seeing all data
-    const maxZoomLevel = totalDataPoints > MIN_VIEWABLE_POINTS ? totalDataPoints / MIN_VIEWABLE_POINTS : 1;
-    
-    const newXZoomLevel = Math.max(minZoomLevel, Math.min(level, maxZoomLevel));
-
-    if (newXZoomLevel === currentXZoomLevel) return {}; // No change
-
-    // Try to keep the center of the view consistent
-    const oldVisiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / currentXZoomLevel));
-    const oldCenterIndexOffset = currentXPanOffset + oldVisiblePoints / 2;
-    
-    const newVisiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / newXZoomLevel));
-    let newXPanOffset = Math.round(oldCenterIndexOffset - newVisiblePoints / 2);
-    
-    // Clamp newXPanOffset
-    const maxPanOffset = Math.max(0, totalDataPoints - newVisiblePoints);
-    newXPanOffset = Math.max(0, Math.min(newXPanOffset, maxPanOffset));
-    
-    return { xZoomLevel: newXZoomLevel, xPanOffset: newXPanOffset };
-  }),
-  panXAxis: (delta) => set((state) => {
-    const { chartData, xZoomLevel, xPanOffset } = state;
-    const totalDataPoints = chartData.length;
-    const MIN_VIEWABLE_POINTS = 10;
-    const visiblePoints = Math.max(MIN_VIEWABLE_POINTS, Math.round(totalDataPoints / xZoomLevel));
-    
-    let newXPanOffset = xPanOffset + delta;
-    
-    // Clamp newXPanOffset
-    const maxPanOffset = Math.max(0, totalDataPoints - visiblePoints);
-    newXPanOffset = Math.max(0, Math.min(newXPanOffset, maxPanOffset));
-    
-    if (newXPanOffset === xPanOffset) return {}; // No change
-    
-    return { xPanOffset: newXPanOffset };
-  }),
-  // --- END X-axis Zoom-related state initialization ---
   marketSummary: {
     open: 0,
     high: 0,
@@ -345,29 +207,6 @@ export const useChartStore = create<ChartState>((set, get) => ({
       }
     });
   },
-  // --- BEGIN Drawing-related action implementations ---
-  addDrawing: (drawing) =>
-    set((state) => ({ drawings: [...state.drawings, drawing] })),
-  updateDrawingSetting: (key, value) =>
-    set((state) => ({
-      currentDrawingSettings: {
-        ...state.currentDrawingSettings,
-        [key]: value,
-      },
-    })),
-  setSelectedDrawingId: (id) => set({ selectedDrawingId: id }),
-  deleteDrawing: (id) =>
-    set((state) => ({
-      drawings: state.drawings.filter((d) => d.id !== id),
-      selectedDrawingId: state.selectedDrawingId === id ? null : state.selectedDrawingId,
-    })),
-  updateDrawingProperties: (drawingId, properties) => set(state => ({
-    drawings: state.drawings.map(d => 
-      d.id === drawingId ? { ...d, ...properties } : d
-    ),
-  })),
-  clearAllDrawings: () => set({ drawings: [], selectedDrawingId: null }),
-  // --- END Drawing-related action implementations ---
   isRightSidebarVisible: true, // Default to true
   toggleRightSidebar: () => set((state) => ({ isRightSidebarVisible: !state.isRightSidebarVisible })),
 }));
