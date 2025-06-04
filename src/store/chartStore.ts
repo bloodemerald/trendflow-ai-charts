@@ -2,13 +2,16 @@ import { create } from 'zustand';
 import { getAIResponse } from '../services/aiService';
 
 type ChartData = {
-  timestamp: string;
+  time: number; // Changed from timestamp: string
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
 };
+
+// Export ChartData to be used in other files like TradingViewChart.tsx
+export type { ChartData };
 
 export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
 
@@ -45,7 +48,19 @@ interface ChartState {
     volume: number;
   };
   updateMarketSummary: () => void;
+  latestSMA50: number | null; // Added for MA (50)
+  // No explicit setter for latestSMA50 in the interface, managed by updateMarketSummary
 }
+
+const SMA_PERIOD_FOR_SUMMARY = 50; // Define SMA period for summary
+
+// Helper to calculate SMA for the last point
+const calculateLastSMA = (data: ChartData[], period: number): number | null => {
+  if (!data || data.length < period) return null;
+  const relevantData = data.slice(data.length - period);
+  const sum = relevantData.reduce((acc, val) => acc + val.close, 0);
+  return sum / period;
+};
 
 // Generate some mock data for initial rendering
 const generateMockChartData = (): ChartData[] => {
@@ -53,9 +68,12 @@ const generateMockChartData = (): ChartData[] => {
   let basePrice = 100;
   const now = new Date();
   
-  for (let i = 30; i >= 0; i--) {
+  // Generate 100 data points for SMA 50 to be visible
+  for (let i = 99; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(now.getDate() - i);
+    // Convert date to Unix timestamp in seconds
+    const timestampInSeconds = Math.floor(date.getTime() / 1000);
     
     const open = basePrice + (Math.random() * 2 - 1);
     const close = open + (Math.random() * 4 - 2);
@@ -64,7 +82,7 @@ const generateMockChartData = (): ChartData[] => {
     const volume = Math.floor(Math.random() * 1000) + 500;
     
     data.push({
-      timestamp: date.toISOString(),
+      time: timestampInSeconds, // Changed from timestamp: date.toISOString()
       open,
       high,
       low,
@@ -96,8 +114,7 @@ export const useChartStore = create<ChartState>((set, get) => ({
   chartData: generateMockChartData(),
   setChartData: (data) => {
     set({ chartData: data });
-    // After updating chart data, also update market summary
-    get().updateMarketSummary();
+    get().updateMarketSummary(); // This will now also update latestSMA50
   },
   indicators: ['sma'], // Keep 'sma' as a default for now, or set to []
   // addIndicator and removeIndicator have been fully deleted.
@@ -171,10 +188,19 @@ export const useChartStore = create<ChartState>((set, get) => ({
     changePercent: 0,
     volume: 0
   },
+  latestSMA50: null, // Initialize latestSMA50
   updateMarketSummary: () => {
     const { chartData } = get();
     
-    if (chartData.length === 0) return;
+    if (chartData.length === 0) {
+      set({
+        marketSummary: {
+          open: 0, high: 0, low: 0, close: 0, change: 0, changePercent: 0, volume: 0
+        },
+        latestSMA50: null // Reset SMA if no data
+      });
+      return;
+    }
     
     // Get first and last data points for the period
     const firstPoint = chartData[0];
@@ -193,8 +219,12 @@ export const useChartStore = create<ChartState>((set, get) => ({
     
     // Calculate change and change percentage
     const change = lastPoint.close - firstPoint.open;
-    const changePercent = (change / firstPoint.open) * 100;
+    // Prevent division by zero if firstPoint.open is 0
+    const changePercent = firstPoint.open === 0 ? 0 : (change / firstPoint.open) * 100;
     
+    // Calculate latest SMA for MA (50)
+    const latestSMAValue = calculateLastSMA(chartData, SMA_PERIOD_FOR_SUMMARY);
+
     set({
       marketSummary: {
         open: firstPoint.open,
@@ -204,7 +234,8 @@ export const useChartStore = create<ChartState>((set, get) => ({
         change,
         changePercent,
         volume: totalVolume
-      }
+      },
+      latestSMA50: latestSMAValue // Set the calculated SMA value
     });
   },
   isRightSidebarVisible: true, // Default to true

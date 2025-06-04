@@ -8,7 +8,13 @@ import RightSidebar from '@/components/RightSidebar';
 import { useChartStore } from '@/store/chartStore';
 
 const Index = () => {
-  const { marketSummary } = useChartStore();
+  const { marketSummary, latestSMA50, chatMessages } = useChartStore(state => ({
+    marketSummary: state.marketSummary,
+    latestSMA50: state.latestSMA50,
+    chatMessages: state.chatMessages,
+  }));
+
+  const latestAIMessage = chatMessages.filter(msg => msg.sender === 'ai').pop();
   
   // Helper function to format price with appropriate precision
   const formatPrice = (price: number) => {
@@ -98,7 +104,9 @@ const Index = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MA (50)</span>
-                    <span className="font-medium text-foreground">N/A</span>
+                    <span className="font-medium text-foreground">
+                      {latestSMA50 !== null ? formatPrice(latestSMA50) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MA (200)</span>
@@ -112,25 +120,19 @@ const Index = () => {
               </div>
               
               {/* Recent Signals Panel */}
-              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm">
-                <h3 className="text-sm font-semibold mb-3 text-foreground">Recent Signals</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full ${marketSummary.change >= 0 ? 'bg-chart-green' : 'bg-chart-red'} mr-2 flex-shrink-0`}></div>
-                    <span className="text-muted-foreground">N/A</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">N/A</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-yellow mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">N/A</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-chart-green mr-2 flex-shrink-0"></div>
-                    <span className="text-muted-foreground">N/A</span>
-                  </div>
+              <div className="bg-card p-4 rounded-lg border border-chart-grid shadow-sm flex flex-col h-full">
+                <h3 className="text-sm font-semibold mb-3 text-foreground flex-shrink-0">Recent Signals</h3>
+                <div className="space-y-2 text-xs text-muted-foreground overflow-y-auto flex-grow">
+                  {latestAIMessage ? (
+                    <div className="flex items-start">
+                      <div className="w-2 h-2 rounded-full bg-chart-blue mr-2 mt-1 flex-shrink-0"></div>
+                      <p className="flex-grow whitespace-pre-wrap break-words">
+                        {latestAIMessage.text}
+                      </p>
+                    </div>
+                  ) : (
+                    <p>No signals yet. Ask the AI assistant for an analysis.</p>
+                  )}
                 </div>
               </div>
             </div>
