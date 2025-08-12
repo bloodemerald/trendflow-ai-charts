@@ -6,13 +6,21 @@ import LeftSidebar from '@/components/LeftSidebar';
 import TradingViewChart from '@/components/TradingViewChart';
 import RightSidebar from '@/components/RightSidebar';
 import { useChartStore } from '@/store/chartStore';
+import { useMarketData } from '@/hooks/useMarketData';
 
 const Index = () => {
-  const { marketSummary, latestSMA50, chatMessages } = useChartStore(state => ({
+  const { marketSummary, latestSMA50, chatMessages, symbol, timeFrame, rsi, macd, bollingerBands } = useChartStore(state => ({
     marketSummary: state.marketSummary,
     latestSMA50: state.latestSMA50,
     chatMessages: state.chatMessages,
+    symbol: state.symbol,
+    timeFrame: state.timeFrame,
+    rsi: state.rsi,
+    macd: state.macd,
+    bollingerBands: state.bollingerBands,
   }));
+
+  useMarketData(symbol, timeFrame);
 
   const latestAIMessage = chatMessages.filter(msg => msg.sender === 'ai').pop();
   
@@ -32,15 +40,6 @@ const Index = () => {
     return volume.toLocaleString();
   };
 
-  // Calculate realistic volume based on price and market activity
-  const getRealisticVolume = () => {
-    const baseVolume = marketSummary.volume;
-    // For crypto, volume should be substantial - multiply by price range factor
-    const priceRange = marketSummary.high - marketSummary.low;
-    const volumeMultiplier = Math.max(1000, priceRange * 50);
-    return Math.floor(baseVolume * volumeMultiplier);
-  };
-  
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
@@ -85,7 +84,7 @@ const Index = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Volume (24h)</span>
-                    <span className="font-medium text-foreground">{formatVolume(getRealisticVolume())}</span>
+                    <span className="font-medium text-foreground">{formatVolume(marketSummary.volume)}</span>
                   </div>
                 </div>
               </div>
@@ -96,11 +95,15 @@ const Index = () => {
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">RSI (14)</span>
-                    <span className="font-medium text-foreground">N/A</span>
+                    <span className="font-medium text-foreground">
+                      {rsi.length > 0 ? rsi[rsi.length - 1].value.toFixed(2) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MACD</span>
-                    <span className="font-medium text-foreground">N/A</span>
+                    <span className="font-medium text-foreground">
+                      {macd.length > 0 ? macd[macd.length - 1].macd.toFixed(2) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">MA (50)</span>
@@ -109,12 +112,10 @@ const Index = () => {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">MA (200)</span>
-                    <span className="font-medium text-foreground">N/A</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Bollinger Bands</span>
-                    <span className="font-medium text-foreground">N/A</span>
+                    <span className="font-medium text-foreground">
+                      {bollingerBands.length > 0 ? `${formatPrice(bollingerBands[bollingerBands.length - 1].lower)} - ${formatPrice(bollingerBands[bollingerBands.length - 1].upper)}` : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </div>

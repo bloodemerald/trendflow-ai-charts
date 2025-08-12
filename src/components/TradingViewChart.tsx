@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType } from 'lightweight-charts';
-import type { IChartApi, ISeriesApi, CandlestickData, LineData } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, CandlestickData, LineData, HistogramData } from 'lightweight-charts';
 import { useChartStore, ChartData } from '@/store/chartStore';
 
 const SMA_PERIOD = 50;
@@ -12,7 +12,7 @@ const calculateSMA = (data: ChartData[], period: number): LineData[] => {
   const smaValues: LineData[] = [];
   for (let i = period - 1; i < data.length; i++) {
     const sum = data.slice(i - period + 1, i + 1).reduce((acc, val) => acc + val.close, 0);
-    smaValues.push({ time: data[i].time as any, value: sum / period });
+    smaValues.push({ time: data[i].timestamp as any, value: sum / period });
   }
   return smaValues;
 };
@@ -22,11 +22,23 @@ const TradingViewChart: React.FC = () => {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const smaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  
-  const chartData = useChartStore(state => state.chartData);
-  const symbol = useChartStore(state => state.symbol);
-  const timeFrame = useChartStore(state => state.timeFrame);
-  const indicators = useChartStore(state => state.indicators);
+  const rsiSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const macdSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const macdSignalSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const macdHistSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const bbUpperSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const bbLowerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+
+
+  const { chartData, symbol, timeFrame, indicators, rsi, macd, bollingerBands } = useChartStore(state => ({
+    chartData: state.chartData,
+    symbol: state.symbol,
+    timeFrame: state.timeFrame,
+    indicators: state.indicators,
+    rsi: state.rsi,
+    macd: state.macd,
+    bollingerBands: state.bollingerBands,
+  }));
 
   // Initialize chart
   useEffect(() => {
@@ -100,7 +112,7 @@ const TradingViewChart: React.FC = () => {
         seriesRef.current.setData([]);
       } else {
         const mappedData: CandlestickData[] = chartData.map(d => ({
-          time: d.time as any,
+          time: d.timestamp as any,
           open: d.open,
           high: d.high,
           low: d.low,
@@ -117,42 +129,85 @@ const TradingViewChart: React.FC = () => {
   // Handle indicators
   useEffect(() => {
     if (!chartRef.current) return;
-    
-    const smaActive = indicators.includes('sma');
-    console.log('[TradingViewChart] SMA indicator active:', smaActive);
 
-    try {
-      if (smaActive && !smaSeriesRef.current) {
-        // Add SMA series using correct API
-        const smaSeries = chartRef.current.addSeries('Line', {
-          color: '#FFD700',
-          lineWidth: 2,
-        });
-        smaSeriesRef.current = smaSeries;
-        
-        // Set SMA data if available
-        if (chartData && chartData.length >= SMA_PERIOD) {
-          const smaData = calculateSMA(chartData, SMA_PERIOD);
-          smaSeries.setData(smaData);
-        }
-        console.log('[TradingViewChart] SMA series added');
-        
-      } else if (!smaActive && smaSeriesRef.current) {
-        // Remove SMA series
-        chartRef.current.removeSeries(smaSeriesRef.current);
-        smaSeriesRef.current = null;
-        console.log('[TradingViewChart] SMA series removed');
-      } else if (smaActive && smaSeriesRef.current && chartData) {
-        // Update existing SMA series
-        if (chartData.length >= SMA_PERIOD) {
-          const smaData = calculateSMA(chartData, SMA_PERIOD);
-          smaSeriesRef.current.setData(smaData);
-        }
-      }
-    } catch (error) {
-      console.error('[TradingViewChart] Error handling indicators:', error);
+    // SMA
+    const smaActive = indicators.includes('sma');
+    if (smaActive && !smaSeriesRef.current) {
+      const smaSeries = chartRef.current.addSeries('Line', { color: '#FFD700', lineWidth: 2 });
+      smaSeriesRef.current = smaSeries;
+    } else if (!smaActive && smaSeriesRef.current) {
+      chartRef.current.removeSeries(smaSeriesRef.current);
+      smaSeriesRef.current = null;
     }
-  }, [indicators, chartData]);
+    if (smaActive && smaSeriesRef.current && chartData.length > 0) {
+      smaSeriesRef.current.setData(calculateSMA(chartData, SMA_PERIOD));
+    }
+
+    // RSI
+    const rsiActive = indicators.includes('rsi');
+    if (rsiActive && !rsiSeriesRef.current) {
+      const rsiSeries = chartRef.current.addSeries('Line', { color: '#9C27B0', lineWidth: 2, pane: 1 });
+      rsiSeriesRef.current = rsiSeries;
+    } else if (!rsiActive && rsiSeriesRef.current) {
+      chartRef.current.removeSeries(rsiSeriesRef.current);
+      rsiSeriesRef.current = null;
+    }
+    if (rsiActive && rsiSeriesRef.current && rsi.length > 0) {
+      rsiSeriesRef.current.setData(rsi.map(d => ({ time: d.time, value: d.value })));
+    }
+
+    // MACD
+    const macdActive = indicators.includes('macd');
+    if (macdActive) {
+      if (!macdSeriesRef.current) {
+        const macdSeries = chartRef.current.addSeries('Line', { color: '#2962FF', lineWidth: 2, pane: 2 });
+        macdSeriesRef.current = macdSeries;
+      }
+      if (!macdSignalSeriesRef.current) {
+        const signalSeries = chartRef.current.addSeries('Line', { color: '#FF6D00', lineWidth: 2, pane: 2 });
+        macdSignalSeriesRef.current = signalSeries;
+      }
+      if (!macdHistSeriesRef.current) {
+        const histSeries = chartRef.current.addSeries('Histogram', { color: '#26A69A', pane: 2 });
+        macdHistSeriesRef.current = histSeries;
+      }
+    } else {
+      if (macdSeriesRef.current) chartRef.current.removeSeries(macdSeriesRef.current);
+      if (macdSignalSeriesRef.current) chartRef.current.removeSeries(macdSignalSeriesRef.current);
+      if (macdHistSeriesRef.current) chartRef.current.removeSeries(macdHistSeriesRef.current);
+      macdSeriesRef.current = null;
+      macdSignalSeriesRef.current = null;
+      macdHistSeriesRef.current = null;
+    }
+    if (macdActive && macd.length > 0) {
+      if(macdSeriesRef.current) macdSeriesRef.current.setData(macd.map(d => ({ time: d.time, value: d.macd })));
+      if(macdSignalSeriesRef.current) macdSignalSeriesRef.current.setData(macd.map(d => ({ time: d.time, value: d.signal })));
+      if(macdHistSeriesRef.current) macdHistSeriesRef.current.setData(macd.map(d => ({ time: d.time, value: d.histogram, color: d.histogram >= 0 ? '#26A69A' : '#EF5350' })));
+    }
+
+    // Bollinger Bands
+    const bbActive = indicators.includes('bb');
+    if (bbActive) {
+      if (!bbUpperSeriesRef.current) {
+        const upperSeries = chartRef.current.addSeries('Line', { color: '#2196F3', lineWidth: 1 });
+        bbUpperSeriesRef.current = upperSeries;
+      }
+      if (!bbLowerSeriesRef.current) {
+        const lowerSeries = chartRef.current.addSeries('Line', { color: '#2196F3', lineWidth: 1 });
+        bbLowerSeriesRef.current = lowerSeries;
+      }
+    } else {
+        if (bbUpperSeriesRef.current) chartRef.current.removeSeries(bbUpperSeriesRef.current);
+        if (bbLowerSeriesRef.current) chartRef.current.removeSeries(bbLowerSeriesRef.current);
+        bbUpperSeriesRef.current = null;
+        bbLowerSeriesRef.current = null;
+    }
+    if (bbActive && bollingerBands.length > 0) {
+        if(bbUpperSeriesRef.current) bbUpperSeriesRef.current.setData(bollingerBands.map(d => ({ time: d.time, value: d.upper })));
+        if(bbLowerSeriesRef.current) bbLowerSeriesRef.current.setData(bollingerBands.map(d => ({ time: d.time, value: d.lower })));
+    }
+
+  }, [indicators, chartData, rsi, macd, bollingerBands]);
 
   // Handle resize
   useEffect(() => {

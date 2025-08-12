@@ -20,10 +20,10 @@ async function analyzeChartData(chartData: ChartData[], count: number = 50): Pro
 }
 
 export async function getAIResponse(chatMessages: ChatMessage[], chartData: ChartData[]): Promise<string> {
-  const GEMINI_API_KEY = "AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E"; // Your provided API key
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY is not set.');
+    console.error('VITE_GEMINI_API_KEY is not set.');
     return "Error: GEMINI_API_KEY is not configured.";
   }
 

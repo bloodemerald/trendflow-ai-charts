@@ -63,7 +63,7 @@ export const useMarketData = (symbol: string, timeFrame: string): UseMarketDataR
       
       // Transform data to match our chart data format
       const transformedData: ChartData[] = data.Data.Data.map((item: any) => ({
-        time: item.time, // Use timestamp directly
+        timestamp: item.time, // Use timestamp directly
         open: item.open,
         high: item.high,
         low: item.low,

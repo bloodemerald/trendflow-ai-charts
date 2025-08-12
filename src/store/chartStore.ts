@@ -1,8 +1,10 @@
 
 import { create } from 'zustand';
+import { getAIResponse } from '../services/aiService';
+import { calculateRSI, calculateMACD, calculateBollingerBands } from '../lib/indicators';
 
 type ChartData = {
-  time: number;
+  timestamp: number;
   open: number;
   high: number;
   low: number;
@@ -48,6 +50,10 @@ interface ChartState {
   };
   updateMarketSummary: () => void;
   latestSMA50: number | null;
+  rsi: { time: number; value: number }[];
+  macd: { time: number; macd: number; signal: number; histogram: number }[];
+  bollingerBands: { time: number; middle: number; upper: number; lower: number }[];
+  calculateIndicators: () => void;
 }
 
 const SMA_PERIOD_FOR_SUMMARY = 50;
@@ -58,39 +64,6 @@ const calculateLastSMA = (data: ChartData[], period: number): number | null => {
   const relevantData = data.slice(data.length - period);
   const sum = relevantData.reduce((acc, val) => acc + val.close, 0);
   return sum / period;
-};
-
-// Generate some mock data for initial rendering
-const generateMockChartData = (): ChartData[] => {
-  const data: ChartData[] = [];
-  let basePrice = 100;
-  const now = new Date();
-  
-  // Generate 100 data points for SMA 50 to be visible
-  for (let i = 99; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(now.getDate() - i);
-    const timestampInSeconds = Math.floor(date.getTime() / 1000);
-    
-    const open = basePrice + (Math.random() * 2 - 1);
-    const close = open + (Math.random() * 4 - 2);
-    const high = Math.max(open, close) + (Math.random() * 1);
-    const low = Math.min(open, close) - (Math.random() * 1);
-    const volume = Math.floor(Math.random() * 1000) + 500;
-    
-    data.push({
-      time: timestampInSeconds,
-      open,
-      high,
-      low,
-      close,
-      volume
-    });
-    
-    basePrice = close;
-  }
-  
-  return data;
 };
 
 // Create initial AI messages
@@ -108,10 +81,11 @@ export const useChartStore = create<ChartState>((set, get) => ({
   setSymbol: (symbol) => set({ symbol }),
   timeFrame: '1m',
   setTimeFrame: (timeFrame) => set({ timeFrame }),
-  chartData: generateMockChartData(),
+  chartData: [],
   setChartData: (data) => {
     set({ chartData: data });
     get().updateMarketSummary();
+    get().calculateIndicators();
   },
   indicators: ['sma'],
   toggleIndicator: (indicatorName) => set((state) => {
@@ -121,7 +95,7 @@ export const useChartStore = create<ChartState>((set, get) => ({
     return { indicators: newIndicators };
   }),
   chatMessages: initialMessages,
-  addUserMessage: (text) => {
+  addUserMessage: async (text) => {
     // Add user message
     set((state) => ({
       chatMessages: [
@@ -136,21 +110,21 @@ export const useChartStore = create<ChartState>((set, get) => ({
       isAIAnalyzing: true,
     }));
 
-    // Simulate AI response
-    setTimeout(() => {
-      set((state) => ({
-        chatMessages: [
-          ...state.chatMessages,
-          {
-            id: Date.now().toString() + '-ai',
-            sender: 'ai' as 'ai',
-            text: "I've analyzed the chart data. The current trend shows interesting patterns with support levels around the recent lows.",
-            timestamp: new Date(),
-          },
-        ],
-        isAIAnalyzing: false,
-      }));
-    }, 2000);
+    const { chartData, chatMessages } = get();
+    const aiResponse = await getAIResponse(chatMessages, chartData);
+
+    set((state) => ({
+      chatMessages: [
+        ...state.chatMessages,
+        {
+          id: Date.now().toString() + '-ai',
+          sender: 'ai' as 'ai',
+          text: aiResponse,
+          timestamp: new Date(),
+        },
+      ],
+      isAIAnalyzing: false,
+    }));
   },
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
@@ -210,4 +184,17 @@ export const useChartStore = create<ChartState>((set, get) => ({
   },
   isRightSidebarVisible: true,
   toggleRightSidebar: () => set((state) => ({ isRightSidebarVisible: !state.isRightSidebarVisible })),
+  rsi: [],
+  macd: [],
+  bollingerBands: [],
+  calculateIndicators: () => {
+    const { chartData } = get();
+    if (chartData.length > 0) {
+      set({
+        rsi: calculateRSI(chartData),
+        macd: calculateMACD(chartData),
+        bollingerBands: calculateBollingerBands(chartData),
+      });
+    }
+  },
 }));
