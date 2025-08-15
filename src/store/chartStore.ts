@@ -46,7 +46,6 @@ interface ChartState {
     changePercent: number;
     volume: number;
   };
-  updateMarketSummary: () => void;
   latestSMA50: number | null;
 }
 
@@ -103,15 +102,65 @@ const initialMessages: ChatMessage[] = [
   }
 ];
 
+// Calculate market summary from chart data
+const calculateMarketSummary = (chartData: ChartData[]) => {
+  if (chartData.length === 0) {
+    return {
+      marketSummary: {
+        open: 0, high: 0, low: 0, close: 0, change: 0, changePercent: 0, volume: 0
+      },
+      latestSMA50: null
+    };
+  }
+  
+  const firstPoint = chartData[0];
+  const lastPoint = chartData[chartData.length - 1];
+  
+  let highestHigh = chartData[0].high;
+  let lowestLow = chartData[0].low;
+  let totalVolume = 0;
+  
+  chartData.forEach(point => {
+    highestHigh = Math.max(highestHigh, point.high);
+    lowestLow = Math.min(lowestLow, point.low);
+    totalVolume += point.volume;
+  });
+  
+  const change = lastPoint.close - firstPoint.open;
+  const changePercent = firstPoint.open === 0 ? 0 : (change / firstPoint.open) * 100;
+  
+  const latestSMAValue = calculateLastSMA(chartData, SMA_PERIOD_FOR_SUMMARY);
+
+  return {
+    marketSummary: {
+      open: firstPoint.open,
+      high: highestHigh,
+      low: lowestLow,
+      close: lastPoint.close,
+      change,
+      changePercent,
+      volume: totalVolume
+    },
+    latestSMA50: latestSMAValue
+  };
+};
+
+const initialChartData = generateMockChartData();
+const initialSummary = calculateMarketSummary(initialChartData);
+
 export const useChartStore = create<ChartState>((set, get) => ({
   symbol: 'BTC/USD',
   setSymbol: (symbol) => set({ symbol }),
   timeFrame: '1m',
   setTimeFrame: (timeFrame) => set({ timeFrame }),
-  chartData: generateMockChartData(),
+  chartData: initialChartData,
   setChartData: (data) => {
-    set({ chartData: data });
-    get().updateMarketSummary();
+    const summary = calculateMarketSummary(data);
+    set({ 
+      chartData: data,
+      marketSummary: summary.marketSummary,
+      latestSMA50: summary.latestSMA50
+    });
   },
   indicators: ['sma'],
   toggleIndicator: (indicatorName) => set((state) => {
@@ -154,60 +203,8 @@ export const useChartStore = create<ChartState>((set, get) => ({
   },
   isAIAnalyzing: false,
   setIsAIAnalyzing: (isAnalyzing) => set({ isAIAnalyzing: isAnalyzing }),
-  marketSummary: {
-    open: 0,
-    high: 0,
-    low: 0,
-    close: 0,
-    change: 0,
-    changePercent: 0,
-    volume: 0
-  },
-  latestSMA50: null,
-  updateMarketSummary: () => {
-    const { chartData } = get();
-    
-    if (chartData.length === 0) {
-      set({
-        marketSummary: {
-          open: 0, high: 0, low: 0, close: 0, change: 0, changePercent: 0, volume: 0
-        },
-        latestSMA50: null
-      });
-      return;
-    }
-    
-    const firstPoint = chartData[0];
-    const lastPoint = chartData[chartData.length - 1];
-    
-    let highestHigh = chartData[0].high;
-    let lowestLow = chartData[0].low;
-    let totalVolume = 0;
-    
-    chartData.forEach(point => {
-      highestHigh = Math.max(highestHigh, point.high);
-      lowestLow = Math.min(lowestLow, point.low);
-      totalVolume += point.volume;
-    });
-    
-    const change = lastPoint.close - firstPoint.open;
-    const changePercent = firstPoint.open === 0 ? 0 : (change / firstPoint.open) * 100;
-    
-    const latestSMAValue = calculateLastSMA(chartData, SMA_PERIOD_FOR_SUMMARY);
-
-    set({
-      marketSummary: {
-        open: firstPoint.open,
-        high: highestHigh,
-        low: lowestLow,
-        close: lastPoint.close,
-        change,
-        changePercent,
-        volume: totalVolume
-      },
-      latestSMA50: latestSMAValue
-    });
-  },
+  marketSummary: initialSummary.marketSummary,
+  latestSMA50: initialSummary.latestSMA50,
   isRightSidebarVisible: true,
   toggleRightSidebar: () => set((state) => ({ isRightSidebarVisible: !state.isRightSidebarVisible })),
 }));

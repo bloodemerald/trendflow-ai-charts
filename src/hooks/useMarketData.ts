@@ -71,14 +71,17 @@ export const useMarketData = (symbol: string, timeFrame: string): UseMarketDataR
         volume: item.volumefrom,
       }));
       
-      setChartData(transformedData);
+      // Only set data if it's different to prevent loops
+      if (JSON.stringify(transformedData) !== JSON.stringify(chartData)) {
+        setChartData(transformedData);
+      }
     } catch (err) {
       console.error('Failed to fetch market data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch market data');
     } finally {
       setIsLoading(false);
     }
-  }, [symbol, timeFrame, setChartData]);
+  }, [symbol, timeFrame, setChartData]); // Removed chartData from dependencies to prevent loops
 
   useEffect(() => {
     if (symbol && timeFrame) {
