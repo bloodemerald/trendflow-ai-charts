@@ -1,27 +1,25 @@
-
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
-import type { IChartApi, ISeriesApi, CandlestickData, LineData } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickSeriesPartialOptions, LineSeriesPartialOptions } from 'lightweight-charts';
 import { useChartStore, ChartData } from '@/store/chartStore';
 
 const SMA_PERIOD = 50;
 
 // Helper function to calculate SMA
-const calculateSMA = (data: ChartData[], period: number): LineData[] => {
+const calculateSMA = (data: ChartData[], period: number): any[] => {
   if (!data || data.length < period) return [];
-  const smaValues: LineData[] = [];
+  const smaValues: any[] = [];
   for (let i = period - 1; i < data.length; i++) {
     const sum = data.slice(i - period + 1, i + 1).reduce((acc, val) => acc + val.close, 0);
-    smaValues.push({ time: data[i].time as any, value: sum / period });
+    smaValues.push({ time: data[i].time, value: sum / period });
   }
   return smaValues;
 };
 
 const TradingViewChart: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const smaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
+  const smaSeriesRef = useRef<any>(null);
   
   const chartData = useChartStore(state => state.chartData);
   const symbol = useChartStore(state => state.symbol);
@@ -55,14 +53,16 @@ const TradingViewChart: React.FC = () => {
 
       chartRef.current = chart;
       
-      // Add candlestick series using correct API
-      const candlestickSeries = chart.addSeries('Candlestick', {
+      // Add candlestick series using proper options type
+      const candlestickOptions: CandlestickSeriesPartialOptions = {
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderVisible: false,
         wickUpColor: '#22c55e',
         wickDownColor: '#ef4444',
-      });
+      };
+      
+      const candlestickSeries = (chart as any).addCandlestickSeries(candlestickOptions);
       
       seriesRef.current = candlestickSeries;
       console.log('[TradingViewChart] Chart and series created successfully');
@@ -99,8 +99,8 @@ const TradingViewChart: React.FC = () => {
       if (chartData.length === 0) {
         seriesRef.current.setData([]);
       } else {
-        const mappedData: CandlestickData[] = chartData.map(d => ({
-          time: d.time as any,
+        const mappedData = chartData.map(d => ({
+          time: d.time,
           open: d.open,
           high: d.high,
           low: d.low,
@@ -123,11 +123,12 @@ const TradingViewChart: React.FC = () => {
 
     try {
       if (smaActive && !smaSeriesRef.current) {
-        // Add SMA series using correct API
-        const smaSeries = chartRef.current.addSeries('Line', {
+        // Add SMA line series
+        const lineOptions: LineSeriesPartialOptions = {
           color: '#FFD700',
           lineWidth: 2,
-        });
+        };
+        const smaSeries = (chartRef.current as any).addLineSeries(lineOptions);
         smaSeriesRef.current = smaSeries;
         
         // Set SMA data if available
