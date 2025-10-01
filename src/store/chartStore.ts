@@ -156,13 +156,13 @@ export const useChartStore = create<ChartState>((set, get) => ({
   chartData: initialChartData,
   setChartData: (data) => {
     const summary = calculateMarketSummary(data);
-    set({ 
+    set({
       chartData: data,
       marketSummary: summary.marketSummary,
       latestSMA50: summary.latestSMA50
     });
   },
-  indicators: ['sma'],
+  indicators: [],
   toggleIndicator: (indicatorName) => set((state) => {
     const newIndicators = state.indicators.includes(indicatorName)
       ? state.indicators.filter(ind => ind !== indicatorName)
