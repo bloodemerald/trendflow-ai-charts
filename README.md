@@ -1,73 +1,99 @@
-# Welcome to your Lovable project
+# TrendFlow AI Charts
 
-## Project info
+An interactive market-analysis dashboard that combines lightweight financial charts with Gemini-powered technical analysis.
 
-**URL**: https://lovable.dev/projects/3379c215-f9a1-4024-a125-d1aa35297254
+## Overview
 
-## How can I edit this code?
+TrendFlow gives traders a single workspace for exploring price action, reviewing market summaries, and asking an AI assistant to analyze recent candle data. The interface is built around a TradingView-style chart, watchlist controls, technical metrics, and a dedicated analysis panel.
 
-There are several ways of editing your application.
+> This project is an experimental analysis tool. It does not provide financial advice or guarantee trading outcomes.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3379c215-f9a1-4024-a125-d1aa35297254) and start prompting.
+- Interactive candlestick charts powered by Lightweight Charts
+- Market summary with OHLC, price change, and volume data
+- Moving-average calculations and technical indicator panels
+- Gemini AI analysis of recent chart data and conversation context
+- Responsive trading-terminal layout
+- Local client-side state management
+- Automated tests with Vitest
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui and Radix UI
+- Lightweight Charts
+- Zustand
+- TanStack Query
+- Google Gemini API
+- Vitest
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Requirements
 
-Follow these steps:
+- Node.js 18 or newer
+- npm
+- A Gemini API key
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Installation
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+```bash
+git clone https://github.com/bloodemerald/trendflow-ai-charts.git
+cd trendflow-ai-charts
+npm install
+cp .env.example .env.local
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+Add your Gemini key to `.env.local`:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Available Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run dev       # Start the development server
+npm run build     # Create a production build
+npm run lint      # Run ESLint
+npm run test      # Run the test suite
+npm run preview   # Preview the production build
+```
 
-**Use GitHub Codespaces**
+## Project Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```text
+src/
+├── components/    # Chart, navigation, panels, and reusable UI
+├── pages/         # Application routes
+├── services/      # Gemini analysis integration
+├── store/         # Zustand state management
+├── types/         # Shared TypeScript types
+└── utils/         # Chart and indicator utilities
+```
 
-## What technologies are used for this project?
+## Security
 
-This project is built with:
+Do not commit API keys. Keep secrets in `.env.local`, which should remain excluded from version control. Keys exposed in a public commit should be revoked immediately, even after the current source file is fixed, because Git history may still contain the old value.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Roadmap
 
-## How can I deploy this project?
+- Add more computed technical indicators
+- Improve live market-data integrations
+- Add saved layouts and analysis sessions
+- Expand test coverage
+- Add configurable AI providers
 
-Simply open [Lovable](https://lovable.dev/projects/3379c215-f9a1-4024-a125-d1aa35297254) and click on Share -> Publish.
+## License
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This repository does not currently include a license file. Add one before distributing or accepting outside contributions.
